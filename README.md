@@ -11,6 +11,22 @@
 - **触发不需要权限：** 只监听鼠标事件和拖拽剪贴板，不用辅助功能 / 输入监控权限。
 - **不止格式转换：** 图片裁切与压缩、视频剪切 / 取帧 / 压缩、音频剪切与淡入淡出，都有带预览的小窗口。
 
+## 安装
+
+**一行命令**（macOS 13+，Apple 芯片和 Intel 都行）：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Smartin524/Phaeton/main/scripts/install.sh | bash
+```
+
+它从 [Releases](https://github.com/Smartin524/Phaeton/releases) 下载最新的 zip，校验 SHA-256，装到 `/Applications`（没有权限就装到 `~/Applications`）并打开。运行前请先读一下[脚本](scripts/install.sh)，它很短。更新就是再运行一遍。
+
+**手动安装：** 从 Releases 下载 zip，解压后把 `Phaeton.app` 拖进“应用程序”。因为没有开发者签名和公证，浏览器下载的版本第一次打开会被系统拦下：右键 → 打开，或在终端运行 `xattr -dr com.apple.quarantine /Applications/Phaeton.app`。用上面的命令安装则不会遇到这个提示。
+
+**卸载：** `rm -rf /Applications/Phaeton.app ~/Library/Application\ Support/Phaeton`（后者是可选组件）。
+
+**从源码构建：** 见[构建与运行](#构建与运行)。
+
 ## 能转什么
 
 | 拖的文件 | 轮盘上的格式 |
@@ -70,7 +86,7 @@ WebP、MP3 和 PDF→DOCX 需要一次性安装（约 250 MB，需联网），�
 - 拖拽监听依赖 macOS 向后台应用传递全局鼠标事件；收不到时轮盘不会出现，可用右键或菜单栏入口。
 - 不支持：MKV / WebM / AVI 输入、FLAC / OGG 输出、Word 以外的 Office 转 PDF。
 - PDF→DOCX 对复杂排版不保证还原，扫描件不做文字识别。
-- 没有签名和公证；界面、拖拽手感没有自动化测试。
+- 没有开发者签名和公证（见上面的安装说明）；界面、拖拽手感没有自动化测试；Intel 版本编译了但没有实机测试。
 
 ## 结构
 

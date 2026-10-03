@@ -11,6 +11,22 @@ A lightweight macOS menu-bar file converter: **hold Shift, drag a file, and a wh
 - **No permission to trigger:** it only watches mouse events and the drag pasteboard, so it needs no Accessibility or Input Monitoring access.
 - **More than converting:** image crop and compress, video trim / frame grab / compress, audio trim with fades, each in a small window with a preview.
 
+## Install
+
+**One command** (macOS 13+, Apple silicon and Intel):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Smartin524/Phaeton/main/scripts/install.sh | bash
+```
+
+It downloads the latest zip from [Releases](https://github.com/Smartin524/Phaeton/releases), verifies its SHA-256, installs to `/Applications` (or `~/Applications` if that is not writable) and opens it. Read the [script](scripts/install.sh) before running it; it is short. To update, run it again.
+
+**Manual install:** download the zip from Releases, unzip, drag `Phaeton.app` into Applications. The app has no developer signature or notarization, so a browser-downloaded copy is blocked the first time: right-click ▸ Open, or run `xattr -dr com.apple.quarantine /Applications/Phaeton.app`. Installing with the command above avoids that prompt.
+
+**Uninstall:** `rm -rf /Applications/Phaeton.app ~/Library/Application\ Support/Phaeton` (the second path holds the optional components).
+
+**Build from source:** see [Build and run](#build-and-run).
+
 ## What it converts
 
 | Dragged file | Formats on the wheel |
@@ -70,7 +86,7 @@ Both test the engine, not the UI; the interface and drag feel have no automated 
 - Detection relies on macOS delivering global mouse events to a background app; if it does not, the wheel will not appear. Use the right-click or menu-bar entry.
 - Not supported: MKV / WebM / AVI input, FLAC / OGG output, Office → PDF other than Word.
 - PDF → DOCX does not guarantee complex layouts; scanned PDFs are not OCR'd.
-- Not signed or notarized; the UI and drag feel have no automated tests.
+- No developer signature or notarization (see Install); the UI and drag feel have no automated tests; the Intel build compiles but has not been tested on real hardware.
 
 ## Layout
 

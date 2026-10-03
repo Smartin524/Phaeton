@@ -1,5 +1,5 @@
 #!/bin/bash
-# Creates an unsigned, local-development .app. No dependency install, permission
+# Creates a locally ad-hoc-signed .app (not notarized). No dependency install, permission
 # grant, system setting change, developer-account login, signing, or upload.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -15,6 +15,10 @@ if [[ -n "${FORMATWHEEL_SDK:-}" ]]; then
 fi
 if [[ "${FORMATWHEEL_DISABLE_SPM_SANDBOX:-0}" == "1" ]]; then
   SWIFT_FLAGS+=(--disable-sandbox)
+fi
+# UNIVERSAL=1 builds for Apple silicon and Intel in one binary (used for releases).
+if [[ "${UNIVERSAL:-0}" == "1" ]]; then
+  SWIFT_FLAGS+=(--arch arm64 --arch x86_64)
 fi
 swift build ${SWIFT_FLAGS[@]+"${SWIFT_FLAGS[@]}"} -c release --product FormatWheel
 BIN_DIR="$(swift build ${SWIFT_FLAGS[@]+"${SWIFT_FLAGS[@]}"} -c release --show-bin-path)"

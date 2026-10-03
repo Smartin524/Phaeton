@@ -19,7 +19,7 @@ with (root / "Resources/Info.plist").open("rb") as file:
 assert info["CFBundleExecutable"] == "FormatWheel"
 assert info["CFBundleName"] == "Phaeton"
 assert info["CFBundleDisplayName"] == "Phaeton"
-assert info["CFBundleIdentifier"] == "local.phaeton.Phaeton"
+assert info["CFBundleIdentifier"] == "io.github.smartin524.phaeton"
 assert info["LSMinimumSystemVersion"] == "13.0"
 swift_files = list((root / "Sources").rglob("*.swift"))
 sources = "\n".join(path.read_text() for path in swift_files)
