@@ -6,6 +6,7 @@
 
 A lightweight macOS menu-bar file converter: **hold Shift, drag a file, and a wheel appears at the pointer. Drop the file on the format you want.** The result is saved next to the original, which is never touched.
 
+- **Inspiration:** the weapon wheel in GTA V and the ping wheel in Apex Legends: hold, flick toward what you want, release.
 - **Native and light:** built on macOS frameworks (AppKit, SwiftUI, ImageIO, AVFoundation, PDFKit, Vision). No background service, nothing is uploaded.
 - **No permission to trigger:** it only watches mouse events and the drag pasteboard, so it needs no Accessibility or Input Monitoring access.
 - **More than converting:** image crop and compress, video trim / frame grab / compress, audio trim with fades, each in a small window with a preview.
