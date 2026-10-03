@@ -39,6 +39,13 @@ enum WheelEntry: Hashable {
         }
     }
 
+    /// The wrench is always at 9 o'clock and the merge / join sector right after it (towards
+    /// 10 o'clock), so they are in the same place on every wheel and can be found by feel.
+    static func rotation(of entries: [WheelEntry]) -> Double {
+        guard let tools = entries.firstIndex(of: .tools) else { return 0 }
+        return WheelGeometry().rotation(pinning: tools, count: entries.count)
+    }
+
     var symbol: String {
         switch self {
         case .format(let format): return format.symbol
@@ -98,8 +105,9 @@ final class DropWheel {
 
     func show(kind: FileKind, formats: [OutputFormat], batch: BatchAction?, hasTools: Bool,
               count: Int, at pointer: NSPoint) {
-        let entries = formats.map(WheelEntry.format) + (batch.map { [WheelEntry.batch($0)] } ?? [])
-            + (hasTools ? [.tools] : [])
+        // Order: formats, the wrench, then merge / join. The wheel is rotated so the wrench is at 9 o'clock.
+        let entries = formats.map(WheelEntry.format) + (hasTools ? [.tools] : [])
+            + (batch.map { [WheelEntry.batch($0)] } ?? [])
         state.hovered = nil
         state.entries = entries
         state.count = count
@@ -137,7 +145,7 @@ private final class DropView: NSView {
         let p = convert(info.draggingLocation, from: nil)
         // SwiftUI geometry is top-left origin; AppKit's is bottom-left.
         return WheelGeometry().index(atX: Double(p.x - bounds.midX), y: Double(bounds.midY - p.y),
-                                     count: entries.count).map { entries[$0] }
+                                     count: entries.count, rotation: WheelEntry.rotation(of: entries)).map { entries[$0] }
     }
 
     private func files(in info: NSDraggingInfo) -> [URL] {
@@ -225,16 +233,17 @@ struct WheelView: View {
     private func sector(index: Int, entry: WheelEntry) -> some View {
         let count = state.entries.count
         let selected = state.hovered == entry
-        let angle = geometry.centerAngle(index: index, count: count) * .pi / 180
+        let rotation = WheelEntry.rotation(of: state.entries)
+        let angle = geometry.centerAngle(index: index, count: count, rotation: rotation) * .pi / 180
         let radius = geometry.middleRadius
         return ZStack {
             if count > 1 {
-                Divider(index: index, count: count)
+                Divider(index: index, count: count, rotation: rotation)
                     .stroke(.primary.opacity(0.10), lineWidth: 0.5)
             }
             ZStack {
-                RingSector(index: index, count: count, inset: 3).fill(Theme.accent)
-                RingSector(index: index, count: count, inset: 3)
+                RingSector(index: index, count: count, inset: 3, rotation: rotation).fill(Theme.accent)
+                RingSector(index: index, count: count, inset: 3, rotation: rotation)
                     .stroke(Theme.accent, style: StrokeStyle(lineWidth: 6, lineJoin: .round))
             }
             .compositingGroup()
@@ -262,10 +271,11 @@ struct WheelView: View {
 private struct Divider: Shape {
     let index: Int
     let count: Int
+    var rotation = 0.0
 
     func path(in rect: CGRect) -> Path {
         let g = WheelGeometry()
-        let angle = (g.centerAngle(index: index, count: count) - 180 / Double(count)) * .pi / 180
+        let angle = (g.centerAngle(index: index, count: count, rotation: rotation) - 180 / Double(count)) * .pi / 180
         let c = CGPoint(x: rect.midX, y: rect.midY)
         var path = Path()
         path.move(to: CGPoint(x: c.x + cos(angle) * (g.innerRadius + 4), y: c.y + sin(angle) * (g.innerRadius + 4)))
@@ -278,6 +288,7 @@ private struct RingSector: Shape {
     let index: Int
     let count: Int
     let inset: Double
+    var rotation = 0.0
 
     func path(in rect: CGRect) -> Path {
         let g = WheelGeometry()
@@ -285,7 +296,7 @@ private struct RingSector: Shape {
         // Pull every edge in by `inset`; the round-joined stroke adds it back as soft corners.
         let outer = g.outerRadius - inset, inner = g.innerRadius + inset
         let span = 360 / Double(count)
-        let start = -90 - span / 2 + Double(index) * span
+        let start = -90 - span / 2 + Double(index) * span + rotation
         let pad = inset / outer * 180 / .pi, padIn = inset / inner * 180 / .pi
         var path = Path()
         path.addArc(center: center, radius: outer, startAngle: .degrees(start + pad), endAngle: .degrees(start + span - pad), clockwise: false)

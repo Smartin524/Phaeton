@@ -22,6 +22,22 @@ final class WheelGeometryTests: XCTestCase {
         XCTAssertEqual(geometry.index(atX: r * cos(angle), y: r * sin(angle), count: 5), 2)
     }
 
+    func testPinnedSectorSitsAtNineOClock() {
+        // Whatever the number of sectors, the pinned one is centred on the left (180° in SwiftUI terms).
+        for count in 4...8 {
+            let pinned = count - 2
+            let rotation = geometry.rotation(pinning: pinned, count: count)
+            XCTAssertEqual(geometry.centerAngle(index: pinned, count: count, rotation: rotation)
+                .truncatingRemainder(dividingBy: 360), 180, accuracy: 0.0001, "count \(count)")
+            XCTAssertEqual(geometry.index(atX: -geometry.middleRadius, y: 0, count: count, rotation: rotation), pinned)
+        }
+        // The sector after it (clockwise) lies towards 10 o'clock, i.e. above the horizontal axis.
+        let rotation = geometry.rotation(pinning: 5, count: 7)
+        let next = geometry.centerAngle(index: 6, count: 7, rotation: rotation) * .pi / 180
+        XCTAssertLessThan(sin(next), 0)
+        XCTAssertLessThan(cos(next), 0)
+    }
+
     func testCenterOutsideAndInvalidDoNotSelect() {
         XCTAssertNil(geometry.index(atX: 0, y: 0, count: 3))
         XCTAssertNil(geometry.index(atX: 0, y: -200, count: 3))

@@ -11,6 +11,12 @@ A lightweight macOS menu-bar file converter: **hold Shift, drag a file, and a wh
 - **No permission to trigger:** it only watches mouse events and the drag pasteboard, so it needs no Accessibility or Input Monitoring access.
 - **More than converting:** image crop and compress, video trim / frame grab / compress, audio trim with fades, each in a small window with a preview.
 
+## What it looks like
+
+<p align="center"><img src="docs/screenshots/image-editor.png" width="620" alt="Image editor window: crop box, ratios, size, quality"></p>
+
+The wrench sits at the same spot on every wheel, due left (9 o'clock), with merge / join right next to it (upper left), so you can find them by feel.
+
 ## Install
 
 **One command** (Apple silicon Mac, macOS 13+):
