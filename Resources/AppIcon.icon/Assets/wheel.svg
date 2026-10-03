@@ -1,13 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <path d="M 212 676 A 300 300 0 0 1 812 676" fill="none" stroke="#FFFFFF" stroke-width="52"/>
-  <line x1="419.6" y1="637.7" x2="244.1" y2="565.0" stroke="#FFFFFF" stroke-width="26" stroke-linecap="round"/>
-  <line x1="441.3" y1="605.3" x2="306.9" y2="470.9" stroke="#FFFFFF" stroke-width="26" stroke-linecap="round"/>
-  <line x1="473.7" y1="583.6" x2="401.0" y2="408.1" stroke="#FFFFFF" stroke-width="26" stroke-linecap="round"/>
-  <line x1="512.0" y1="576.0" x2="512.0" y2="386.0" stroke="#FFFFFF" stroke-width="26" stroke-linecap="round"/>
-  <line x1="550.3" y1="583.6" x2="623.0" y2="408.1" stroke="#FFFFFF" stroke-width="26" stroke-linecap="round"/>
-  <line x1="582.7" y1="605.3" x2="717.1" y2="470.9" stroke="#FFFFFF" stroke-width="26" stroke-linecap="round"/>
-  <line x1="604.4" y1="637.7" x2="779.9" y2="565.0" stroke="#FFFFFF" stroke-width="26" stroke-linecap="round"/>
-  <path d="M 408 676 A 104 104 0 0 1 616 676 Z" fill="#FFFFFF"/>
-  <line x1="168.0" y1="694.0" x2="856.0" y2="694.0" stroke="#FFFFFF" stroke-width="36" stroke-linecap="round"/>
-
+  <clipPath id="sky"><rect x="0" y="0" width="1024" height="674"/></clipPath>
+  <g clip-path="url(#sky)">
+    <circle cx="512" cy="562" r="300" fill="none" stroke="#FFFFFF" stroke-width="22"/>
+    <circle cx="512" cy="562" r="248" fill="none" stroke="#FFFFFF" stroke-width="44"/>
+    <line x1="598.9" y1="585.3" x2="738.0" y2="622.6" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round"/>
+    <line x1="575.6" y1="625.6" x2="677.5" y2="727.5" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round"/>
+    <line x1="535.3" y1="648.9" x2="572.6" y2="788.0" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round"/>
+    <line x1="488.7" y1="648.9" x2="451.4" y2="788.0" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round"/>
+    <line x1="448.4" y1="625.6" x2="346.5" y2="727.5" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round"/>
+    <line x1="425.1" y1="585.3" x2="286.0" y2="622.6" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round"/>
+    <line x1="425.1" y1="538.7" x2="286.0" y2="501.4" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round"/>
+    <line x1="448.4" y1="498.4" x2="346.5" y2="396.5" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round"/>
+    <line x1="488.7" y1="475.1" x2="451.4" y2="336.0" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round"/>
+    <line x1="535.3" y1="475.1" x2="572.6" y2="336.0" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round"/>
+    <line x1="575.6" y1="498.4" x2="677.5" y2="396.5" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round"/>
+    <line x1="598.9" y1="538.7" x2="738.0" y2="501.4" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round"/>
+  </g>
+  <path fill="#FFFFFF" fill-rule="evenodd" d="M 606 562 A 94 94 0 1 0 418 562 A 94 94 0 1 0 606 562 Z M 544 562 A 32 32 0 1 0 480 562 A 32 32 0 1 0 544 562 Z"/>
+    <line x1="150.0" y1="700.0" x2="874.0" y2="700.0" stroke="#FFFFFF" stroke-width="32" stroke-linecap="round"/>
 </svg>
