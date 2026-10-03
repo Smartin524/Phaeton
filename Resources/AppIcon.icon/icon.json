@@ -36,31 +36,6 @@
         "enabled": true,
         "value": 0.15
       }
-    },
-    {
-      "layers": [
-        {
-          "fill-specializations": [
-            {
-              "appearance": "dark",
-              "value": {
-                "solid": "extended-srgb:0.85098,0.46667,0.34118,1.00000"
-              }
-            }
-          ],
-          "image-name": "rays.svg",
-          "name": "Rays",
-          "opacity": 0.7
-        }
-      ],
-      "shadow": {
-        "kind": "neutral",
-        "opacity": 0.3
-      },
-      "translucency": {
-        "enabled": true,
-        "value": 0.4
-      }
     }
   ],
   "supported-platforms": {
