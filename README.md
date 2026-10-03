@@ -13,9 +13,13 @@
 
 ## 界面
 
-<p align="center"><img src="docs/screenshots/image-editor.png" width="620" alt="图片编辑窗口：裁切框、比例、宽高、画质"></p>
+<p align="center"><img src="docs/screenshots/wheel.png" width="260" alt="拖动图片时出现的轮盘：JPEG、WebP、HEIC、PDF、TXT 和扳手"></p>
 
-扳手格固定在轮盘的正左方（9 点钟方向），合并 / 拼接紧挨着它（左上）。不同文件的轮盘里它们总在同一个位置，用熟了不用看。
+按住 Shift 拖动文件，轮盘出现在光标处；拖到格式上松手即转换。扳手格固定在正左方（9 点钟方向），合并 / 拼接紧挨着它（左上）。不同文件的轮盘里它们总在同一个位置，用熟了不用看。
+
+拖到扳手上松手，打开带预览的编辑窗口：
+
+<p align="center"><img src="docs/screenshots/image-editor.png" width="620" alt="图片编辑窗口：裁切框、比例、宽高、画质"></p>
 
 ## 安装
 

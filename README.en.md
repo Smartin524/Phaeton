@@ -13,9 +13,13 @@ A lightweight macOS menu-bar file converter: **hold Shift, drag a file, and a wh
 
 ## What it looks like
 
-<p align="center"><img src="docs/screenshots/image-editor.png" width="620" alt="Image editor window: crop box, ratios, size, quality"></p>
+<p align="center"><img src="docs/screenshots/wheel.png" width="260" alt="The wheel that appears while dragging an image: JPEG, WebP, HEIC, PDF, TXT and the wrench"></p>
 
-The wrench sits at the same spot on every wheel, due left (9 o'clock), with merge / join right next to it (upper left), so you can find them by feel.
+Hold Shift and drag a file; the wheel appears at the pointer. Drop on a format to convert. The wrench sits at the same spot on every wheel, due left (9 o'clock), with merge / join right next to it (upper left), so you can find them by feel.
+
+Drop on the wrench to open an editor window with a preview:
+
+<p align="center"><img src="docs/screenshots/image-editor.png" width="620" alt="Image editor window: crop box, ratios, size, quality"></p>
 
 ## Install
 
