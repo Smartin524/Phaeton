@@ -1,4 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <mask id="m"><rect width="1024" height="1024" fill="#fff"/><rect x="0" y="470" width="1024" height="12" fill="#000"/><rect x="0" y="514" width="1024" height="16" fill="#000"/><rect x="0" y="558" width="1024" height="20" fill="#000"/><rect x="0" y="602" width="1024" height="24" fill="#000"/><rect x="0" y="648" width="1024" height="28" fill="#000"/></mask>
-  <circle cx="604" cy="462" r="236" fill="#FFFFFF" mask="url(#m)"/>
-</svg>

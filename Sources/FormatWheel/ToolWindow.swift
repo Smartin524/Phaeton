@@ -30,7 +30,7 @@ final class ToolWindows: NSObject, NSWindowDelegate {
         window.isOpaque = false
         window.backgroundColor = .clear
         window.isReleasedWhenClosed = false
-        window.minSize = NSSize(width: Self.panelWidth + 220, height: 340)
+        window.minSize = NSSize(width: Self.panelWidth + 220, height: 380)
         window.delegate = self
         let close: () -> Void = { [weak window] in window?.close() }
         let run: (String, @escaping ToolWork) -> Void = { label, work in perform(urls, label, work) }
@@ -152,14 +152,54 @@ struct Section<Content: View>: View {
     }
 }
 
-/// A push button that fills the panel's width.
+/// A compact push button that fills the panel's width.
 struct WideButton: View {
     let title: String
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) { Text(title).frame(maxWidth: .infinity) }
-            .controlSize(.regular)
+        Button(action: action) {
+            Text(title).font(.system(size: 12, weight: .medium)).frame(maxWidth: .infinity)
+        }
+        .controlSize(.small)
+    }
+}
+
+/// A rounded group of rows separated by hairlines, like a list in System Settings.
+struct ListGroup<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(spacing: 0) { content }
+            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.primary.opacity(0.05)))
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+}
+
+/// One row of a ListGroup: a small accent icon and a 12 pt title, highlighted under the pointer.
+struct ActionRow: View {
+    let symbol: String
+    let title: String
+    var isLast = false
+    let action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: symbol).font(.system(size: 12)).foregroundStyle(Theme.accent).frame(width: 18)
+                Text(title).font(.system(size: 12))
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 10).padding(.vertical, 7)
+            .background(Color.primary.opacity(hovering ? 0.07 : 0))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .overlay(alignment: .bottom) {
+            if !isLast { Rectangle().fill(Color.primary.opacity(0.08)).frame(height: 0.5).padding(.leading, 36) }
+        }
     }
 }
 
@@ -169,9 +209,12 @@ struct SidePanel<Content: View, Footer: View>: View {
     @ViewBuilder let footer: Footer
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            content
-            Spacer(minLength: 8)
+        VStack(alignment: .leading, spacing: 12) {
+            // Scrolls when the window is shorter than the options, so nothing is ever cut off.
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 16) { content }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
             footer
         }
         .padding(16)
@@ -278,6 +321,9 @@ struct ImageToolView: View {
                 }
                 }
             } footer: {
+                if page == 1 {
+                    HStack { Spacer(); Button("关闭", action: close).keyboardShortcut(.cancelAction) }
+                } else {
                 HStack(spacing: 8) {
                     Button("重置") {
                         aspect = Aspect.all[0]
@@ -290,6 +336,7 @@ struct ImageToolView: View {
                     Button("取消", action: close).keyboardShortcut(.cancelAction)
                     Button("保存", action: save).keyboardShortcut(.defaultAction)
                         .buttonStyle(.borderedProminent).disabled(session == nil)
+                }
                 }
             }
         }

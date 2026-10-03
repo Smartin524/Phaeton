@@ -24,20 +24,8 @@
               }
             }
           ],
-          "image-name": "wheels.svg",
-          "name": "Wheels"
-        },
-        {
-          "fill-specializations": [
-            {
-              "appearance": "dark",
-              "value": {
-                "solid": "extended-srgb:0.85098,0.46667,0.34118,1.00000"
-              }
-            }
-          ],
-          "image-name": "car.svg",
-          "name": "Car"
+          "image-name": "hub.svg",
+          "name": "Hub"
         }
       ],
       "shadow": {
@@ -60,18 +48,42 @@
               }
             }
           ],
-          "image-name": "sun.svg",
-          "name": "Sun",
-          "opacity": 0.4
+          "image-name": "rim.svg",
+          "name": "Rim"
         }
       ],
       "shadow": {
         "kind": "neutral",
-        "opacity": 0.2
+        "opacity": 0.5
       },
       "translucency": {
         "enabled": true,
-        "value": 0.5
+        "value": 0.2
+      }
+    },
+    {
+      "layers": [
+        {
+          "fill-specializations": [
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "extended-srgb:0.85098,0.46667,0.34118,1.00000"
+              }
+            }
+          ],
+          "image-name": "spokes.svg",
+          "name": "Spokes",
+          "opacity": 1.0
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.3
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.4
       }
     }
   ],

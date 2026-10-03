@@ -15,17 +15,24 @@ struct ImageMoreTools: View {
 
     var body: some View {
         Section(caption: "处理") {
-            WideButton(title: "去背景") { run("去背景") { try await service.removeBackground(source: $0) } }
-            WideButton(title: "移除位置等元数据") { run("移除元数据") { try await service.stripMetadata(source: $0) } }
+            ListGroup {
+                ActionRow(symbol: "person.crop.rectangle", title: "去背景") {
+                    run("去背景") { try await service.removeBackground(source: $0) }
+                }
+                ActionRow(symbol: "location.slash", title: "移除位置等元数据", isLast: true) {
+                    run("移除元数据") { try await service.stripMetadata(source: $0) }
+                }
+            }
         }
         Section(caption: "压缩到指定大小") {
-            SizeField(text: $targetSize, unit: $unit)
-            WideButton(title: "压缩") { compress() }
+            SizeRow(text: $targetSize, unit: $unit, action: compress)
         }
         if urls.count == 1 {
             Section(caption: "识别") {
-                WideButton(title: "复制图片中的文字") { copyText() }
-                WideButton(title: "识别二维码") { copyQR() }
+                ListGroup {
+                    ActionRow(symbol: "text.viewfinder", title: "复制图片中的文字", action: copyText)
+                    ActionRow(symbol: "qrcode.viewfinder", title: "识别二维码", isLast: true, action: copyQR)
+                }
                 if !status.isEmpty {
                     Text(status).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(3)
                 }
@@ -85,20 +92,24 @@ enum SizeUnit: String, CaseIterable, Identifiable {
     }
 }
 
-/// A number field with a KB / MB menu.
-struct SizeField: View {
+/// One row: a number, KB / MB, and a small button that applies it.
+struct SizeRow: View {
     @Binding var text: String
     @Binding var unit: SizeUnit
+    let action: () -> Void
 
     var body: some View {
         HStack(spacing: 6) {
-            TextField("大小", text: $text).textFieldStyle(.roundedBorder).multilineTextAlignment(.center)
+            TextField("大小", text: $text)
+                .textFieldStyle(.roundedBorder).font(.system(size: 12)).multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity).controlSize(.small)
             Menu {
                 ForEach(SizeUnit.allCases) { choice in Button(choice.rawValue) { unit = choice } }
             } label: {
                 Text(unit.rawValue).font(.system(size: 12, weight: .medium))
             }
             .menuStyle(.borderlessButton).fixedSize()
+            Button("压缩", action: action).controlSize(.small).font(.system(size: 12, weight: .medium))
         }
     }
 }
@@ -123,10 +134,11 @@ struct VideoMoreTools: View {
                     Chip(title: title, selected: height == value) { height = value }
                 }
             }
-            if !estimate.isEmpty { Text("约 \(estimate)").font(.system(size: 11)).foregroundStyle(.secondary) }
-            WideButton(title: "开始压缩") {
-                let h = height
-                run("压缩视频") { source, progress in try await MediaConverter().compress(source: source, height: h, progress: progress) }
+            ListGroup {
+                ActionRow(symbol: "arrow.down.right.and.arrow.up.left", title: estimate.isEmpty ? "开始压缩" : "开始压缩（约 \(estimate)）", isLast: true) {
+                    let h = height
+                    run("压缩视频") { source, progress in try await MediaConverter().compress(source: source, height: h, progress: progress) }
+                }
             }
         }
         .task(id: height) {
@@ -136,18 +148,22 @@ struct VideoMoreTools: View {
             if let bytes, !Task.isCancelled { estimate = formatBytes(bytes) }
         }
         Section(caption: "压缩到指定大小") {
-            SizeField(text: $targetSize, unit: $unit)
-            WideButton(title: "压缩") {
+            SizeRow(text: $targetSize, unit: $unit) {
                 guard let bytes = unit.bytes(from: targetSize) else { status = "请输入大小，例如 20 MB"; return }
                 let service = self.service
                 run("压缩视频") { source, progress in try await service.compressVideo(source: source, toBytes: bytes, progress: progress) }
             }
+            if !status.isEmpty { Text(status).font(.system(size: 11)).foregroundStyle(.secondary) }
         }
-        Section(caption: "声音与速度") {
-            WideButton(title: "静音") {
-                let service = self.service
-                run("静音") { source, progress in try await service.muteVideo(source: source, progress: progress) }
+        Section(caption: "声音") {
+            ListGroup {
+                ActionRow(symbol: "speaker.slash", title: "静音", isLast: true) {
+                    let service = self.service
+                    run("静音") { source, progress in try await service.muteVideo(source: source, progress: progress) }
+                }
             }
+        }
+        Section(caption: "变速") {
             ChipGrid(columns: 4) {
                 ForEach([0.5, 0.75, 1.5, 2], id: \.self) { factor in
                     Chip(title: "\(factor == 0.75 ? "0.75" : String(format: "%g", factor))×", selected: false) {
@@ -157,7 +173,6 @@ struct VideoMoreTools: View {
                 }
             }
         }
-        if !status.isEmpty { Text(status).font(.system(size: 11)).foregroundStyle(.secondary) }
     }
 
     private func run(_ label: String, _ job: @escaping ToolWork) {
@@ -185,15 +200,19 @@ struct PDFToolView: View {
                     Text("PDF 工具一次只能处理一个文件；多个文件请用轮盘上的“合并 PDF”。")
                         .font(.system(size: 12)).foregroundStyle(.secondary)
                 } else {
-                    Section(caption: "共 \(pageCount) 页") {
-                        Text("提取其中几页，存为新 PDF").font(.system(size: 11)).foregroundStyle(.secondary)
-                        TextField("例如 1-3,5", text: $pages).textFieldStyle(.roundedBorder)
-                        WideButton(title: "提取页面", action: extract)
+                    Section(caption: "共 \(pageCount) 页 · 提取页面") {
+                        HStack(spacing: 6) {
+                            TextField("例如 1-3,5", text: $pages).textFieldStyle(.roundedBorder)
+                                .font(.system(size: 12)).controlSize(.small)
+                            Button("提取", action: extract).controlSize(.small).font(.system(size: 12, weight: .medium))
+                        }
+                        if !status.isEmpty { Text(status).font(.system(size: 11)).foregroundStyle(.red) }
                     }
                     Section(caption: "拆分") {
-                        WideButton(title: "每页存为单独的 PDF", action: split)
+                        ListGroup {
+                            ActionRow(symbol: "square.split.2x1", title: "每页存为单独的 PDF", isLast: true, action: split)
+                        }
                     }
-                    if !status.isEmpty { Text(status).font(.system(size: 11)).foregroundStyle(.red) }
                 }
             } footer: {
                 HStack {
