@@ -11,11 +11,10 @@ struct HomeActions {
     var quit: () -> Void
 }
 
-/// The main window: the app is running, how to use it, and what to allow. Kept short on purpose.
+/// The menu-bar panel: the app is running, how to use it, and what to allow. Kept short on purpose.
 struct HomeView: View {
     @ObservedObject var status: AppStatus
     let actions: HomeActions
-    private let tick = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     private var version: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
@@ -29,13 +28,13 @@ struct HomeView: View {
             PanelSection(caption: "授权") { permissions }
             footer.padding(.top, 4)
         }
-        .padding(.horizontal, 28)
-        .padding(.top, 16)
-        .padding(.bottom, 24)
-        .frame(width: 460)
+        .padding(.horizontal, 20)
+        .padding(.top, 18)
+        .padding(.bottom, 18)
+        .frame(width: 380)
+        // Popovers are see-through glass; whatever is behind would show through the text.
+        .background(Color(nsColor: .windowBackgroundColor))
         .tint(Theme.accent)
-        .onReceive(tick) { _ in status.refresh() }
-        .task { status.refresh() }
     }
 
     // MARK: Header and state
@@ -54,10 +53,15 @@ struct HomeView: View {
         }
     }
 
+    private var pillText: String {
+        guard status.isConverting else { return "已启动" }
+        return status.queuedCount > 0 ? "处理中 · 排队 \(status.queuedCount)" : "处理中"
+    }
+
     private var runningPill: some View {
         HStack(spacing: 6) {
             Circle().fill(status.isConverting ? Theme.accent : Color.green).frame(width: 7, height: 7)
-            Text(status.isConverting ? "处理中" : "已启动").font(.system(size: 11, weight: .medium))
+            Text(pillText).font(.system(size: 11, weight: .medium))
         }
         .padding(.horizontal, 10).padding(.vertical, 5)
         .background(Capsule().fill((status.isConverting ? Theme.accent : Color.green).opacity(0.14)))
@@ -71,7 +75,7 @@ struct HomeView: View {
                 HStack {
                     Text("登录时自动启动").font(.system(size: 12))
                     Spacer()
-                    Toggle("", isOn: Binding(get: { status.launchesAtLogin }, set: { status.setLaunchAtLogin($0) }))
+                    Toggle("登录时自动启动", isOn: Binding(get: { status.launchesAtLogin }, set: { status.setLaunchAtLogin($0) }))
                         .toggleStyle(FlatToggleStyle()).labelsHidden()
                 }
                 .padding(.horizontal, 12).padding(.vertical, 9)
@@ -147,7 +151,7 @@ struct HomeView: View {
             Image(systemName: symbol).font(.system(size: 13)).foregroundStyle(Theme.accent).frame(width: 20)
             Text(title).font(.system(size: 12, weight: .medium))
             Spacer(minLength: 8)
-            Toggle("", isOn: isOn).toggleStyle(FlatToggleStyle()).labelsHidden().disabled(!enabled)
+            Toggle(title, isOn: isOn).toggleStyle(FlatToggleStyle()).labelsHidden().disabled(!enabled)
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
         .overlay(alignment: .bottom) {

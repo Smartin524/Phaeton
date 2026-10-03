@@ -12,7 +12,7 @@
   <img src="docs/screenshots/image-editor.png" height="300" alt="图片编辑窗口">
 </p>
 
-- **打开就能用：** 启动后是一个简单的窗口，说明已启动、开机自启、怎么用、要授权什么；关掉窗口它仍在后台等你拖文件，点 Dock 图标回到窗口。
+- **只在菜单栏：** 没有 Dock 图标。菜单栏里的小车轮打开一个面板：运行状态、开机自启、怎么用、要授权什么。面板关着时它照样在后台等你拖文件。
 - **原生：** 主要用 macOS 自带框架，没有后台服务，不上传文件。
 - **触发不需要权限：** 只监听鼠标事件和拖拽剪贴板。
 - **不止转换：** 拖到轮盘左边的**扳手**上，打开带预览的编辑窗口（图片裁切 / 去背景 / 压缩，视频和音频剪切，PDF 拆分）。
@@ -29,7 +29,7 @@
 curl -fsSL https://raw.githubusercontent.com/Smartin524/Phaeton/main/scripts/install.sh | bash
 ```
 
-**第 3 步：等它跑完。** 看到 Phaeton 的窗口弹出就装好了，终端可以关掉。以后按住 **Shift** 拖文件即可。
+**第 3 步：等它跑完。** 看到菜单栏出现小车轮、弹出 Phaeton 面板就装好了，终端可以关掉。以后按住 **Shift** 拖文件即可。
 
 之后：
 - **升级**：再运行一遍上面那一行。
@@ -69,7 +69,7 @@ curl -fsSL https://raw.githubusercontent.com/Smartin524/Phaeton/main/scripts/ins
 
 - **Finder 右键：** 快速操作 / 服务 → “用轻與转换…”（没看到就到“系统设置 → 键盘 → 键盘快捷键 → 服务”勾选）。
 - **进度：** 松手后轮盘变成进度圆环，点击圆环取消；结束发系统通知。
-- **已选中的文件按 Shift 会被 Finder 取消选中：** 先拖起文件再按 Shift，或在主窗口的“授权”里打开“已选中文件时，按 Shift 不取消选中”（需要辅助功能权限，默认关闭）。
+- **已选中的文件按 Shift 会被 Finder 取消选中：** 先拖起文件再按 Shift，或在菜单栏面板的“授权”里打开“已选中文件时，按 Shift 不取消选中”（需要辅助功能权限，默认关闭）。
 - **不覆盖已有文件：** 先写临时文件再改名，重名自动加数字，失败不留残渣。
 
 ## 可选组件
@@ -81,13 +81,16 @@ WebP、MP3、PDF→DOCX 需要一次性安装（约 250 MB，联网），装进 
 macOS 13+ 和 Swift 工具链，无 Swift 包依赖。
 
 ```bash
-bash scripts/build-app.sh     # 生成 dist/Phaeton.app（本地临时签名）
+bash scripts/make-signing-identity.sh  # 只需一次：在登录钥匙串里生成本机签名证书
+bash scripts/build-app.sh     # 生成 dist/Phaeton.app
 swift test                    # 单元测试，需要完整 Xcode
 bash scripts/validate.sh      # 引擎端到端检查，样本现场生成
 bash scripts/make-release.sh  # 打包 Release zip
 ```
 
 测试覆盖转换引擎，不含界面和拖拽手感。
+
+签名：有“Phaeton Local Signing”证书时用它签名，辅助功能授权在重新构建、更新后依然有效，且只有持有这把私钥的机器能签出匹配的程序；没有时退回普通的临时签名，每次构建后需要重新授权。
 
 ## 已知限制
 

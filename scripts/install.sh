@@ -48,5 +48,5 @@ rm -rf "$DEST/Phaeton.app"
 ditto "$WORK/Phaeton.app" "$DEST/Phaeton.app"
 xattr -dr com.apple.quarantine "$DEST/Phaeton.app" 2>/dev/null || true
 echo "Installed: $DEST/Phaeton.app"
-if [[ -z "${PHAETON_NO_OPEN:-}" ]]; then open "$DEST/Phaeton.app"; fi
-echo "Phaeton opened a window that explains how to use it. Hold Shift and drag a file to try it."
+if [[ -z "${PHAETON_NO_OPEN:-}" ]]; then open "$DEST/Phaeton.app" --args --show-panel; fi
+echo "Phaeton lives in the menu bar (the small wheel); its panel explains how to use it. Hold Shift and drag a file to try it."

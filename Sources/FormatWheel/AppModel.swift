@@ -1,71 +1,80 @@
 import AppKit
 import FormatWheelCore
 
-/// Converts dropped files one at a time and keeps a short status for the menu bar.
+/// Converts dropped files one at a time and keeps a short status for the menu-bar panel.
 @MainActor
 final class AppModel {
     private(set) var isConverting = false
     private(set) var progress: Double?
     private(set) var resultURL: URL?
     private(set) var message = "按住 Shift 拖动文件，拖到轮盘格式上松手。"
+    /// Where the running job was started (the wheel's centre), so its progress ring appears there.
+    /// nil for jobs started from a window or a menu: the ring then appears at the pointer.
+    private(set) var origin: NSPoint?
+    var queuedCount: Int { queue.count }
     var onChange: (() -> Void)?
     var onFinish: ((String, URL?, Bool) -> Void)?
     var onCancel: (() -> Void)?
     /// A job needs the optional components; the app offers to install them and may run it again.
     var onNeedExtras: (([URL], String, @escaping ToolWork) -> Void)?
 
+    private struct Job {
+        let sources: [URL]
+        let label: String
+        let origin: NSPoint?
+        let work: ToolWork
+    }
+
     private let service = ConversionService()
     private var task: Task<Void, Never>?
     /// Jobs asked for while another one runs; they start one after another instead of being dropped.
-    private var queue: [(sources: [URL], label: String, work: ToolWork)] = []
+    private var queue: [Job] = []
 
-    func convert(_ sources: [URL], to format: OutputFormat) {
+    func convert(_ sources: [URL], to format: OutputFormat, at origin: NSPoint? = nil) {
         let service = self.service
-        run(sources, label: "转换为 \(format.title)") { source, progress in
+        run(Job(sources: sources, label: "转换为 \(format.title)", origin: origin) { source, progress in
             try await service.convert(source: source, to: format, progress: progress)
-        }
+        })
     }
 
     /// One output from all the files (merge PDFs, join clips…).
-    func batch(_ sources: [URL], action: BatchAction) {
+    func batch(_ sources: [URL], action: BatchAction, at origin: NSPoint? = nil) {
         guard let first = sources.first else { return }
         let service = self.service
-        run([first], label: action.title) { _, progress in
+        run(Job(sources: [first], label: action.title, origin: origin) { _, progress in
             try await service.batch(action, sources: sources, progress: progress)
-        }
+        })
     }
 
     /// Runs any per-file job with the usual progress, status and notification handling.
-    func perform(_ sources: [URL], label: String,
-                 work: @escaping @Sendable (URL, @escaping @Sendable (Double) -> Void) async throws -> URL) {
-        run(sources, label: label, work: work)
+    func perform(_ sources: [URL], label: String, work: @escaping ToolWork) {
+        run(Job(sources: sources, label: label, origin: nil, work: work))
     }
 
     /// Starts the job now, or queues it behind the one that is running.
-    private func run(_ sources: [URL], label: String,
-                     work: @escaping @Sendable (URL, @escaping @Sendable (Double) -> Void) async throws -> URL) {
-        guard !sources.isEmpty else { return }
+    private func run(_ job: Job) {
+        guard !job.sources.isEmpty else { return }
         if isConverting {
-            queue.append((sources, label, work))
-            message = "已加入队列：\(label)（前面还有任务在进行）"
+            queue.append(job)
+            message = "已加入队列：\(job.label)（排队中 \(queue.count) 个）"
             onChange?()
             return
         }
-        start(sources, label: label, work: work)
+        start(job)
     }
 
     private func startNext() {
         guard !isConverting, !queue.isEmpty else { return }
-        let next = queue.removeFirst()
-        start(next.sources, label: next.label, work: next.work)
+        start(queue.removeFirst())
     }
 
-    private func start(_ sources: [URL], label: String,
-                       work: @escaping @Sendable (URL, @escaping @Sendable (Double) -> Void) async throws -> URL) {
-        guard !isConverting, !sources.isEmpty else { return }
+    private func start(_ job: Job) {
+        guard !isConverting else { return }
+        let sources = job.sources, label = job.label, work = job.work
         isConverting = true
         progress = nil
         resultURL = nil
+        origin = job.origin
         message = "正在\(label)…"
         onChange?()
         task = Task { [weak self] in
@@ -109,12 +118,17 @@ final class AppModel {
         }
     }
 
-    func cancel() { task?.cancel() }
+    /// Stops the running job and drops everything queued behind it: "cancel" means stop.
+    func cancel() {
+        queue.removeAll()
+        task?.cancel()
+    }
 
     private func finish(outputs: [URL], total: Int, failure: Error?) {
         isConverting = false
         progress = nil
         task = nil
+        origin = nil
         resultURL = outputs.last
         if let failure {
             message = outputs.isEmpty ? failure.localizedDescription

@@ -5,12 +5,13 @@ import UserNotifications
 
 enum NotificationState { case allowed, notAsked, denied, unavailable }
 
-/// What the main window shows: whether a job is running, the last result, and the state of each
-/// permission. It is refreshed every second while the window is open, so a switch made in System
-/// Settings shows up without reopening anything.
+/// What the menu-bar panel shows: whether a job is running, the last result, and the state of each
+/// permission. The panel refreshes it every second while it is open (and never while it is closed),
+/// so a switch made in System Settings shows up without reopening anything.
 @MainActor
 final class AppStatus: ObservableObject {
     @Published var isConverting = false
+    @Published var queuedCount = 0
     @Published var message = ""
     @Published var resultURL: URL?
     @Published var notifications = NotificationState.unavailable
@@ -21,10 +22,19 @@ final class AppStatus: ObservableObject {
     @Published var loginStatus = SMAppService.Status.notRegistered
     @Published var loginError: String?
 
+    /// Assigning a @Published property announces a change even when the value is the same, and every
+    /// announcement re-renders the panel; so only changed values are written.
     func refresh() {
-        accessibilityTrusted = AXIsProcessTrusted()
-        loginStatus = SMAppService.mainApp.status
-        Task { notifications = await Self.notificationState() }
+        update(\.accessibilityTrusted, AXIsProcessTrusted())
+        update(\.loginStatus, SMAppService.mainApp.status)
+        Task {
+            let state = await Self.notificationState()
+            update(\.notifications, state)
+        }
+    }
+
+    func update<Value: Equatable>(_ key: ReferenceWritableKeyPath<AppStatus, Value>, _ value: Value) {
+        if self[keyPath: key] != value { self[keyPath: key] = value }
     }
 
     /// Registers or removes the app as a login item (System Settings ▸ General ▸ Login Items).

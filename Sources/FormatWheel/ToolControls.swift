@@ -203,6 +203,10 @@ struct FlatToggleStyle: ToggleStyle {
             }
             .buttonStyle(.plain)
             .opacity(isEnabled ? 1 : 0.4)
+            // VoiceOver reads a standard switch with its title and state, not a plain button.
+            .accessibilityRepresentation {
+                Toggle(isOn: configuration.$isOn) { configuration.label }
+            }
         }
     }
 }

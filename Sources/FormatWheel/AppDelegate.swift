@@ -10,32 +10,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let notifier = Notifier()
     private let toolWindows = ToolWindows()
     private let hud = ProgressHUD()
-    private var hudCenter: NSPoint?
     private var hudShown = false
     private var installing = false
     private let shiftFilter = ShiftFilter()
     private let filterKey = "StripShiftOnSelected"
     private let status = AppStatus()
-    private var mainWindow: MainWindow?
+    private var panel: MenuBarPanel?
     private var pendingFiles: [URL] = []
-    /// Held for the app's lifetime: without it macOS naps a windowless app and the 30 Hz drag poll runs late.
+    /// Held for the app's lifetime: without it macOS naps a windowless app and the 30 Hz drag poll
+    /// runs late. It only opts out of App Nap; it does not keep the Mac awake or timers precise, and an
+    /// idle app with no timers running costs nothing.
     private var activity: NSObjectProtocol?
+    private let welcomedKey = "ShownPanelOnFirstLaunch"
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // An ordinary app: a Dock icon and a menu bar, so it can always be found and quit. It keeps
-        // listening for drags after its window is closed.
-        NSApp.setActivationPolicy(.regular)
+        // A menu-bar app: no Dock icon, the wheel icon in the menu bar opens the panel.
+        NSApp.setActivationPolicy(.accessory)
         activity = ProcessInfo.processInfo.beginActivity(
-            options: [.userInitiatedAllowingIdleSystemSleep, .latencyCritical], reason: "Watching for Shift-drag")
+            options: .userInitiatedAllowingIdleSystemSleep, reason: "Watching for Shift-drag")
         installMenus()
 
         wheel.onDrop = { [weak self] urls, format, center in
-            self?.hudCenter = center
-            self?.model.convert(urls, to: format)
+            self?.model.convert(urls, to: format, at: center)
         }
         wheel.onBatch = { [weak self] urls, action, center in
-            self?.hudCenter = center
-            self?.model.batch(urls, action: action)
+            self?.model.batch(urls, action: action, at: center)
         }
         wheel.onTools = { [weak self] urls, kind in
             guard let self else { return }
@@ -59,7 +58,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.onFinish = { [weak self] message, url, success in
             self?.hud.end(success: success)
             self?.hudShown = false
-            self?.hudCenter = nil
             self?.notifier.post(message: message, revealing: url, success: success)
         }
         if UserDefaults.standard.bool(forKey: filterKey), AXIsProcessTrusted() { status.shiftFilterOn = shiftFilter.start() }
@@ -67,14 +65,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.onCancel = { [weak self] in
             self?.hud.dismiss()
             self?.hudShown = false
-            self?.hudCenter = nil
         }
         NSApp.servicesProvider = self
         NSUpdateDynamicServices()
         monitor.start()
-        refresh()
 
-        let window = MainWindow(status: status, actions: HomeActions(
+        let panel = MenuBarPanel(status: status, actions: HomeActions(
             requestNotifications: { [weak self] in
                 Task { @MainActor in
                     await AppStatus.requestNotifications()
@@ -87,31 +83,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 AppStatus.openAccessibilitySettings()
             },
             setShiftFilter: { [weak self] on in self?.setShiftFilter(on) },
-            close: { [weak self] in self?.mainWindow?.close() },
+            close: { [weak self] in self?.panel?.close() },
             quit: { NSApp.terminate(nil) }))
-        mainWindow = window
-        // Started by "open at login": stay quiet in the background, no window.
-        if !launchedAsLoginItem { window.show() }
+        self.panel = panel
+        refresh()
+        // On the very first launch (so the app is not invisible) and when the installer asks for it;
+        // otherwise, at login included, it stays quiet in the menu bar.
+        let asked = CommandLine.arguments.contains("--show-panel")
+        if asked || !UserDefaults.standard.bool(forKey: welcomedKey) {
+            UserDefaults.standard.set(true, forKey: welcomedKey)
+            panel.show()
+        }
     }
 
-    /// True when macOS started the app because it is a login item.
-    private var launchedAsLoginItem: Bool {
-        func code(_ text: String) -> UInt32 { text.utf8.reduce(0) { ($0 << 8) | UInt32($1) } }
-        guard let event = NSAppleEventManager.shared().currentAppleEvent else { return false }
-        return event.paramDescriptor(forKeyword: AEKeyword(code("prdt")))?.enumCodeValue == OSType(code("lgit"))
-    }
-
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
-
-    /// Clicking the Dock icon brings the window back.
+    /// Opening the app again (Finder, Spotlight, Launchpad) while it runs shows the panel.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        mainWindow?.show()
-        return true
+        panel?.show()
+        return false
     }
 
-    @objc private func showMainWindow() { mainWindow?.show() }
-
-    /// The menu bar: the app menu, Edit (so text fields answer ⌘C / ⌘V / ⌘A / ⌘Z) and Window (⌘W).
+    /// A main menu that never shows (the app has no menu bar of its own) but gives text fields in the
+    /// editor windows ⌘C / ⌘V / ⌘A / ⌘Z, and the windows ⌘W.
     private func installMenus() {
         let name = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Phaeton"
         let main = NSMenu()
@@ -145,8 +137,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let window = NSMenu(title: "窗口")
         window.addItem(withTitle: "关闭", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
         window.addItem(withTitle: "最小化", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
-        window.addItem(.separator())
-        window.addItem(withTitle: "显示\(name)主窗口", action: #selector(showMainWindow), keyEquivalent: "0").target = self
         attach(window)
         NSApp.mainMenu = main
         NSApp.windowsMenu = window
@@ -172,13 +162,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if model.isConverting {
             if !hudShown {
                 hudShown = true
-                hud.begin(at: hudCenter ?? NSEvent.mouseLocation)
+                hud.begin(at: model.origin ?? NSEvent.mouseLocation)
             }
             hud.update(progress: model.progress)
         }
-        status.isConverting = model.isConverting
-        status.message = model.message
-        status.resultURL = model.resultURL
+        status.update(\.isConverting, model.isConverting)
+        status.update(\.queuedCount, model.queuedCount)
+        status.update(\.message, model.message)
+        status.update(\.resultURL, model.resultURL)
+        panel?.showProgress(model.progress, running: model.isConverting || installing)
     }
 
     /// The "Shift does not deselect selected files" option (needs Accessibility, which the window asks for).
@@ -204,8 +196,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.addButton(withTitle: "取消")
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         installing = true
-        hud.begin(at: hudCenter ?? NSEvent.mouseLocation)
+        hud.begin(at: NSEvent.mouseLocation)
         hud.update(progress: nil)
+        refresh()
         Task { @MainActor in
             let failure = await ExtrasInstaller.install()
             installing = false
@@ -226,7 +219,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Asks which format to convert `urls` to, in a menu at the pointer. Used by the
     /// file picker and by the Finder right-click service.
     private func presentFormatMenu(for urls: [URL]) {
-        guard !model.isConverting, let kind = urls.lazy.compactMap({ FileKind($0) }).first else {
+        // A job already running is fine: the new one queues behind it, as from the wheel.
+        guard let kind = urls.lazy.compactMap({ FileKind($0) }).first else {
             NSSound.beep()
             return
         }

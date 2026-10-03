@@ -12,7 +12,7 @@ A lightweight macOS file converter: **hold Shift, drag a file, and a wheel appea
   <img src="docs/screenshots/image-editor.png" height="300" alt="Image editor">
 </p>
 
-- **Opens ready to use:** it starts with a simple window (running, launch at login, how to use it, what to allow). Close it and the app keeps waiting for drags in the background; click its Dock icon to bring the window back.
+- **Menu bar only:** no Dock icon. The small wheel in the menu bar opens a panel (running, launch at login, how to use it, what to allow). With the panel closed it keeps waiting for drags in the background.
 - **Native:** built on macOS frameworks; no background service; nothing is uploaded.
 - **No permission to trigger:** it only watches mouse events and the drag pasteboard.
 - **More than converting:** drop on the **wrench** at the left of the wheel for an editor with a preview (image crop / background removal / compression, video and audio trim, PDF split).
@@ -29,7 +29,7 @@ Needs an Apple silicon Mac (M1 or later) on macOS 13 or newer.
 curl -fsSL https://raw.githubusercontent.com/Smartin524/Phaeton/main/scripts/install.sh | bash
 ```
 
-**Step 3: wait for it to finish.** When the Phaeton window appears it is installed and you can close Terminal. From now on, hold **Shift** and drag a file.
+**Step 3: wait for it to finish.** When the wheel shows up in the menu bar and the Phaeton panel opens, it is installed and you can close Terminal. From now on, hold **Shift** and drag a file.
 
 Afterwards:
 - **Update:** run the same line again.
@@ -69,7 +69,7 @@ Afterwards:
 
 - **Finder right-click:** Quick Actions / Services ▸ "Convert with Phaeton…" (enable it in System Settings ▸ Keyboard ▸ Keyboard Shortcuts ▸ Services if missing).
 - **Progress:** after the drop the wheel becomes a progress ring; click it to cancel; a notification when done.
-- **Shift on a selected file deselects it in Finder:** start the drag first, then press Shift; or turn on "Shift does not deselect selected files" under Permissions in the main window (needs Accessibility, off by default).
+- **Shift on a selected file deselects it in Finder:** start the drag first, then press Shift; or turn on "Shift does not deselect selected files" under Permissions in the menu-bar panel (needs Accessibility, off by default).
 - **Never overwrites:** writes a temp file then renames, names get a counter, failures leave nothing behind.
 
 ## Optional components
@@ -81,13 +81,16 @@ WebP, MP3 and PDF → DOCX need a one-time install (about 250 MB, network) into 
 macOS 13+ and a Swift toolchain; no Swift package dependencies.
 
 ```bash
-bash scripts/build-app.sh     # builds dist/Phaeton.app (ad-hoc signed)
+bash scripts/make-signing-identity.sh  # once: a local signing certificate in your login keychain
+bash scripts/build-app.sh     # builds dist/Phaeton.app
 swift test                    # unit tests, needs full Xcode
 bash scripts/validate.sh      # end-to-end engine checks, samples generated on the spot
 bash scripts/make-release.sh  # packs the release zip
 ```
 
 Tests cover the conversion engine, not the UI or drag feel.
+
+Signing: with the "Phaeton Local Signing" certificate, the Accessibility grant survives rebuilds and updates, and only the machine holding that private key can sign a matching app; without it the build is plain ad-hoc signed and Accessibility must be granted again after each build.
 
 ## Known limits
 

@@ -39,9 +39,11 @@ public struct DocumentConverter: Sendable {
                                              documentAttributes: [.documentType: type])
                     try data.write(to: temporary, options: .withoutOverwriting)
                 case .pdf:
+                    // AppKit printing (tables, pictures and searchable CJK text all come out right).
+                    // It must run on the main thread, but a 170-page text takes well under half a second.
                     let copy = text.copy() as! NSAttributedString
-                    try await MainActor.run { try Self.renderPDF(copy, to: temporary) }
-                    Self.setTitle(source.deletingPathExtension().lastPathComponent, ofPDFAt: temporary)
+                    let title = source.deletingPathExtension().lastPathComponent
+                    try await MainActor.run { try Self.renderPDF(copy, title: title, to: temporary) }
                 default:
                     throw ConversionError.unsupportedFormat
                 }
@@ -161,15 +163,10 @@ public struct DocumentConverter: Sendable {
         return text
     }
 
-    /// Viewers show the document title (the browser tab, the title bar) instead of "Untitled".
-    private static func setTitle(_ title: String, ofPDFAt url: URL) {
-        guard let document = PDFDocument(url: url) else { return }
-        document.documentAttributes = [PDFDocumentAttribute.titleAttribute: title]
-        document.write(to: url)
-    }
-
+    /// A4 with 54 pt margins. The job title becomes the PDF's title, so viewers show the file name
+    /// instead of "Untitled".
     @MainActor
-    private static func renderPDF(_ text: NSAttributedString, to url: URL) throws {
+    private static func renderPDF(_ text: NSAttributedString, title: String, to url: URL) throws {
         let paper = NSSize(width: 595, height: 842)
         let margin: CGFloat = 54
         let info = NSPrintInfo(dictionary: [
@@ -188,6 +185,7 @@ public struct DocumentConverter: Sendable {
             view.frame.size.height = max(100, layout.usedRect(for: container).height + 20)
         }
         let operation = NSPrintOperation(view: view, printInfo: info)
+        operation.jobTitle = title
         operation.showsPrintPanel = false
         operation.showsProgressPanel = false
         guard operation.run() else { throw ConversionError.exportFailed("无法生成 PDF") }

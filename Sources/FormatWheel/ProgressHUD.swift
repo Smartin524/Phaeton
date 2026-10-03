@@ -6,6 +6,8 @@ final class HUDState: ObservableObject {
     enum Phase { case working, done, failed }
     @Published var phase = Phase.working
     @Published var progress: Double?
+    /// The spinner only runs while the ring is on screen: a hidden panel must not animate.
+    @Published var visible = false
 }
 
 /// A small glass disc with a progress ring, shown where the wheel was while a conversion runs.
@@ -44,6 +46,7 @@ final class ProgressHUD {
         let work = DispatchWorkItem { [weak self] in
             self?.panel.setFrameOrigin(NSPoint(x: x, y: y))
             self?.panel.orderFrontRegardless()
+            self?.state.visible = true
         }
         pendingShow = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
@@ -56,7 +59,7 @@ final class ProgressHUD {
         pendingShow = nil
         guard panel.isVisible else { return }
         state.phase = success ? .done : .failed
-        let work = DispatchWorkItem { [weak self] in self?.panel.orderOut(nil) }
+        let work = DispatchWorkItem { [weak self] in self?.hidePanel() }
         pendingHide = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8, execute: work)
     }
@@ -64,14 +67,18 @@ final class ProgressHUD {
     func dismiss() {
         pendingShow?.cancel()
         pendingHide?.cancel()
+        hidePanel()
+    }
+
+    private func hidePanel() {
         panel.orderOut(nil)
+        state.visible = false
     }
 }
 
 private struct HUDView: View {
     @ObservedObject var state: HUDState
     let onClick: () -> Void
-    @State private var spin = false
     private let disc: CGFloat = 76
 
     var body: some View {
@@ -111,10 +118,14 @@ private struct HUDView: View {
                 Text("\(Int(progress * 100))")
                     .font(.system(size: 15, weight: .semibold, design: .rounded).monospacedDigit())
             } else {
-                Circle().trim(from: 0, to: 0.28)
-                    .stroke(Theme.accent, style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                    .rotationEffect(.degrees(spin ? 360 : 0))
-                    .onAppear { withAnimation(.linear(duration: 0.9).repeatForever(autoreverses: false)) { spin = true } }
+                // Driven by a timeline that pauses while hidden. (A repeatForever animation started in
+                // onAppear ran for the app's whole life: the panel is built hidden at launch.)
+                TimelineView(.animation(paused: !state.visible)) { context in
+                    let turn = context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 0.9) / 0.9
+                    Circle().trim(from: 0, to: 0.28)
+                        .stroke(Theme.accent, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                        .rotationEffect(.degrees(turn * 360))
+                }
             }
         }
         .frame(width: 50, height: 50)

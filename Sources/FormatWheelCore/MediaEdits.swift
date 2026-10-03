@@ -135,11 +135,13 @@ extension MediaConverter {
         guard (try? await asset.load(.isReadable)) == true else { throw ConversionError.unreadableMedia }
         guard (try? await asset.loadTracks(withMediaType: .video).first) != nil else { throw ConversionError.noVideoTrack }
         var limit = Int(Double(bytes) * 0.92)
+        // The first try nearly always fits, so it fills most of the ring; a retry only adds the rest.
+        let span = [0.0, 0.9, 0.97, 1.0]
         for attempt in 0..<3 {
             let temporary = OutputPublisher.temporaryURL(nextTo: source, fileExtension: "mp4")
             do {
                 try await export(asset, preset: AVAssetExportPresetHighestQuality, type: .mp4, to: temporary,
-                                 fileLengthLimit: Int64(limit)) { progress((Double(attempt) + $0) / 3) }
+                                 fileLengthLimit: Int64(limit)) { progress(span[attempt] + $0 * (span[attempt + 1] - span[attempt])) }
                 let result = (try? temporary.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? Int.max
                 // Re-encoding a file that is already small can make it bigger; never keep that.
                 guard result < original else { throw ConversionError.alreadySmall }
