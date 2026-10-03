@@ -22,8 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         item.autosaveName = "Phaeton"
-        let icon = NSImage(systemSymbolName: "chart.pie", accessibilityDescription: "Phaeton")
-        icon?.isTemplate = true
+        let icon = StatusIcon.make()
         item.button?.image = icon
         // Deliberately tiny: everything else happens by dragging, from Finder's right-click menu,
         // or by clicking the progress ring.
