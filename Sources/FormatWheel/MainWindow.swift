@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 /// The one window the app opens: it says the app is running and explains how to use it. Closing it
@@ -6,6 +7,8 @@ import SwiftUI
 @MainActor
 final class MainWindow: NSObject, NSWindowDelegate {
     private var window: NSWindow?
+    private var content: NSHostingView<HomeView>?
+    private var changes: AnyCancellable?
     private let status: AppStatus
     private let actions: HomeActions
 
@@ -22,6 +25,21 @@ final class MainWindow: NSObject, NSWindowDelegate {
     }
 
     func close() { window?.close() }
+
+    /// Resizes the window to the content's natural height, keeping its top edge where it is.
+    private func fit(_ window: NSWindow, animated: Bool) {
+        guard let content else { return }
+        content.layoutSubtreeIfNeeded()
+        let height = ceil(content.fittingSize.height)
+        // The content runs under the title bar (full-size content view), so compare with the whole content area.
+        let current = window.contentView?.bounds.height ?? window.frame.height
+        guard height > 100, abs(current - height) > 1 else { return }
+        var frame = window.frame
+        let delta = height - current
+        frame.size.height += delta
+        frame.origin.y -= delta
+        window.setFrame(frame, display: true, animate: animated && window.isVisible)
+    }
 
     private func makeWindow() -> NSWindow {
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 460, height: 500),
@@ -45,7 +63,13 @@ final class MainWindow: NSObject, NSWindowDelegate {
         content.autoresizingMask = [.width, .height]
         glass.addSubview(content)
         window.contentView = glass
+        self.content = content
+        fit(window, animated: false)
         window.center()
+        // A row can appear or go (the accessibility switch, a hint); keep the window as tall as its content.
+        changes = status.objectWillChange.sink { [weak self] in
+            DispatchQueue.main.async { if let window = self?.window { self?.fit(window, animated: true) } }
+        }
         return window
     }
 }

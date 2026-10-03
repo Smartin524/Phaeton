@@ -22,18 +22,17 @@ struct HomeView: View {
     }
 
     var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 16) {
-                header
-                PanelSection(caption: "开机自启") { launchAtLogin }
-                PanelSection(caption: "怎么用") { usage }
-                PanelSection(caption: "授权") { permissions }
-                footer
-            }
-            .padding(.horizontal, 28)
-            .padding(.top, 30)
-            .padding(.bottom, 20)
+        VStack(alignment: .leading, spacing: 16) {
+            header
+            PanelSection(caption: "开机自启") { launchAtLogin }
+            PanelSection(caption: "怎么用") { usage }
+            PanelSection(caption: "授权") { permissions }
+            footer.padding(.top, 4)
         }
+        .padding(.horizontal, 28)
+        .padding(.top, 16)
+        .padding(.bottom, 24)
+        .frame(width: 460)
         .tint(Theme.accent)
         .onReceive(tick) { _ in status.refresh() }
         .task { status.refresh() }
@@ -157,7 +156,7 @@ struct HomeView: View {
     }
 
     private var granted: some View {
-        Label("已允许", systemImage: "checkmark.circle.fill")
+        Label("已授权", systemImage: "checkmark.circle.fill")
             .font(.system(size: 11, weight: .medium)).foregroundStyle(.green)
     }
 
