@@ -50,11 +50,18 @@ public final class ImageEditSession: @unchecked Sendable {
         originalBytes = (try? source.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
     }
 
+    /// The output size and an estimate of its file size. Past about 8 megapixels the estimate is
+    /// taken from a downsized copy and scaled up by pixel count: close enough for "about", and it
+    /// keeps a 48-megapixel photo from costing hundreds of megabytes on every crop drag.
     public func estimate(_ edit: ImageEdit) throws -> (size: CGSize, bytes: Int) {
         try autoreleasepool {
             let result = try edit.apply(to: full)
-            let bytes = try ImageConverter().encodedSize(of: result, format: edit.outputFormat(for: source),
+            let pixels = Double(result.width * result.height)
+            let limit = 8_000_000.0
+            let probe = pixels > limit ? try ImageOps.scaled(result, by: (limit / pixels).squareRoot()) : result
+            var bytes = try ImageConverter().encodedSize(of: probe, format: edit.outputFormat(for: source),
                                                          quality: edit.quality)
+            if probe !== result { bytes = Int(Double(bytes) * pixels / Double(probe.width * probe.height)) }
             return (CGSize(width: result.width, height: result.height), bytes)
         }
     }

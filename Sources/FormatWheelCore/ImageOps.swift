@@ -4,17 +4,6 @@ import Foundation
 
 /// Pixel operations shared by the tool presets and the interactive image editor.
 enum ImageOps {
-    /// Center crop to an aspect ratio.
-    static func cropped(_ image: CGImage, aspectWidth: Int, aspectHeight: Int) throws -> CGImage {
-        let target = Double(aspectWidth) / Double(aspectHeight)
-        let current = Double(image.width) / Double(image.height)
-        var width = Double(image.width), height = Double(image.height)
-        if current > target { width = (height * target).rounded(.down) } else { height = (width / target).rounded(.down) }
-        let rect = CGRect(x: ((Double(image.width) - width) / 2).rounded(.down),
-                          y: ((Double(image.height) - height) / 2).rounded(.down), width: width, height: height)
-        return try cropped(image, toPixels: rect)
-    }
-
     /// Crop with a rectangle in pixels (top-left origin).
     static func cropped(_ image: CGImage, toPixels rect: CGRect) throws -> CGImage {
         let bounds = CGRect(x: 0, y: 0, width: image.width, height: image.height)

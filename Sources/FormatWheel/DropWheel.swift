@@ -15,16 +15,6 @@ extension OutputFormat {
     }
 }
 
-extension ToolAction {
-    var symbol: String {
-        switch self {
-        case .compressImage, .halveImage: return "arrow.down.right.and.arrow.up.left"
-        case .cropImage: return "crop"
-        case .compressVideo: return "film"
-        }
-    }
-}
-
 /// One sector of the wheel: a target format, or the wrench that opens the tool panel.
 enum WheelEntry: Hashable {
     case format(OutputFormat)
@@ -59,7 +49,6 @@ enum WheelEntry: Hashable {
 final class WheelState: ObservableObject {
     @Published var hovered: WheelEntry?
     @Published var entries: [WheelEntry] = []
-    @Published var count = 1
 }
 
 /// A wheel-shaped drop target that appears under the pointer during a Shift-drag.
@@ -104,13 +93,12 @@ final class DropWheel {
     }
 
     func show(kind: FileKind, formats: [OutputFormat], batch: BatchAction?, hasTools: Bool,
-              count: Int, at pointer: NSPoint) {
+              at pointer: NSPoint) {
         // Order: formats, the wrench, then merge / join. The wheel is rotated so the wrench is at 9 o'clock.
         let entries = formats.map(WheelEntry.format) + (hasTools ? [.tools] : [])
             + (batch.map { [WheelEntry.batch($0)] } ?? [])
         state.hovered = nil
         state.entries = entries
-        state.count = count
         dropView.kind = kind
         dropView.entries = entries
         let screen = NSScreen.screens.first { $0.frame.contains(pointer) } ?? NSScreen.main
@@ -192,7 +180,6 @@ struct WheelView: View {
             ForEach(Array(state.entries.enumerated()), id: \.element) { index, entry in
                 sector(index: index, entry: entry)
             }
-            center
         }
         .frame(width: side, height: side)
         .scaleEffect(appeared ? 1 : 0.9)
@@ -216,20 +203,6 @@ struct WheelView: View {
         }
     }
 
-    private var center: some View {
-        VStack(spacing: 2) {
-            if let hovered = state.hovered {
-                Text(hovered.title).font(.system(size: 15, weight: .semibold, design: .rounded))
-            } else {
-                Text(state.count > 1 ? "\(state.count) 个文件" : "拖到格式上")
-                    .font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
-            }
-        }
-        .animation(nil, value: state.hovered)
-        .frame(width: geometry.innerRadius * 1.6)
-        .allowsHitTesting(false)
-    }
-
     private func sector(index: Int, entry: WheelEntry) -> some View {
         let count = state.entries.count
         let selected = state.hovered == entry
@@ -238,7 +211,7 @@ struct WheelView: View {
         let radius = geometry.middleRadius
         return ZStack {
             if count > 1 {
-                Divider(index: index, count: count, rotation: rotation)
+                SpokeDivider(index: index, count: count, rotation: rotation)
                     .stroke(.primary.opacity(0.10), lineWidth: 0.5)
             }
             ZStack {
@@ -268,7 +241,7 @@ struct WheelView: View {
 }
 
 /// A hairline between neighbouring sectors, so the ring reads as one piece.
-private struct Divider: Shape {
+private struct SpokeDivider: Shape {
     let index: Int
     let count: Int
     var rotation = 0.0

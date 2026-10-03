@@ -10,6 +10,7 @@ enum PDFTools {
         let converter = ImageConverter()
         let document = PDFDocument()
         for url in urls {
+            try Task.checkCancellation()
             try autoreleasepool {
                 let image = try converter.decodeStillImage(url)
                 let picture = NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
@@ -24,6 +25,7 @@ enum PDFTools {
         guard urls.count >= 2 else { throw ConversionError.notEnoughFiles }
         let document = PDFDocument()
         for url in urls {
+            try Task.checkCancellation()
             guard let part = PDFDocument(url: url) else { throw ConversionError.unreadableDocument }
             for index in 0..<part.pageCount {
                 guard let page = part.page(at: index)?.copy() as? PDFPage else { continue }
@@ -65,13 +67,20 @@ enum PDFTools {
         guard let document = PDFDocument(url: source), document.pageCount > 0 else { throw ConversionError.unreadableDocument }
         guard document.pageCount <= 500 else { throw ConversionError.tooManyPages(500) }
         let folder = try OutputPublisher.makeFolder(nextTo: source)
-        let width = String(document.pageCount).count
-        for index in 0..<document.pageCount {
-            guard let page = document.page(at: index)?.copy() as? PDFPage else { continue }
-            let single = PDFDocument()
-            single.insert(page, at: 0)
-            let name = String(format: "%0\(width)d", index + 1)
-            guard single.write(to: folder.appendingPathComponent("\(name).pdf")) else { throw ConversionError.encodingFailed }
+        do {
+            let width = String(document.pageCount).count
+            for index in 0..<document.pageCount {
+                try Task.checkCancellation()
+                guard let page = document.page(at: index)?.copy() as? PDFPage else { continue }
+                let single = PDFDocument()
+                single.insert(page, at: 0)
+                let name = String(format: "%0\(width)d", index + 1)
+                guard single.write(to: folder.appendingPathComponent("\(name).pdf")) else { throw ConversionError.encodingFailed }
+            }
+        } catch {
+            // The folder is ours (just created, only our files in it): a cancelled or failed split leaves nothing behind.
+            try? FileManager.default.removeItem(at: folder)
+            throw error
         }
         return folder
     }

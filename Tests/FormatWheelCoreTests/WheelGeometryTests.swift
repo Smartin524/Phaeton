@@ -5,11 +5,10 @@ final class WheelGeometryTests: XCTestCase {
     let geometry = WheelGeometry()
 
     func testThreeSectorCenters() {
-        let formats: [OutputFormat] = [.png, .jpeg, .pdf]
         let r = geometry.middleRadius
-        XCTAssertEqual(geometry.format(atX: 0, y: -r, in: formats), .png)
-        XCTAssertEqual(geometry.format(atX: r * 0.866, y: r * 0.5, in: formats), .jpeg)
-        XCTAssertEqual(geometry.format(atX: -r * 0.866, y: r * 0.5, in: formats), .pdf)
+        XCTAssertEqual(geometry.index(atX: 0, y: -r, count: 3), 0)
+        XCTAssertEqual(geometry.index(atX: r * 0.866, y: r * 0.5, count: 3), 1)
+        XCTAssertEqual(geometry.index(atX: -r * 0.866, y: r * 0.5, count: 3), 2)
     }
 
     func testTwoAndFiveSectors() {

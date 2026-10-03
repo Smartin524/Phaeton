@@ -24,29 +24,20 @@ import ImageIO
         let pdf = try await svc.convert(source: svg, to: .pdf)
         check(bytes(pdf) > 0, "svg->pdf")
 
-        // image tools
-        let photo = dir.appendingPathComponent("small.jpg")   // already heavily compressed
+        // image editor: resize and crop with the same ImageEdit the editor window builds
         let sample = dir.appendingPathComponent("sample.jpg")  // 1200 x 900
-        do {
-            _ = try await svc.apply(.compressImage, to: photo)
-            check(false, "already-small jpeg should be refused")
-        } catch { check(error.localizedDescription.contains("已经很小"), "already-small file refused: \(error.localizedDescription)") }
-        let big = dir.appendingPathComponent("big.jpg")
-        let small = try await svc.apply(.compressImage, to: big)
-        print("compress", small.lastPathComponent, bytes(big), "->", bytes(small), size(small))
-        check(bytes(small) < bytes(big) && size(small).0 == 2560, "big photo compressed and capped at 2560")
-        let half = try await svc.apply(.halveImage, to: sample)
-        check(size(half) == (600, 450), "halve 1200x900 -> \(size(half))")
-        let square = try await svc.apply(.cropImage(width: 1, height: 1), to: sample)
-        check(size(square) == (900, 900), "crop 1:1 -> \(size(square))")
-        let wide = try await svc.apply(.cropImage(width: 16, height: 9), to: sample)
-        check(size(wide) == (1200, 675), "crop 16:9 -> \(size(wide))")
-        let tall = try await svc.apply(.cropImage(width: 9, height: 16), to: sample)
-        check(size(tall).0 == 506 && size(tall).1 == 900, "crop 9:16 -> \(size(tall))")
+        let half = try await svc.saveImageEdit(source: sample, edit: ImageEdit(scale: 0.5))
+        check(size(half) == (600, 450) && half.lastPathComponent.contains("编辑"), "halve 1200x900 -> \(size(half))")
+        let square = try await svc.saveImageEdit(source: sample, edit: ImageEdit(crop: CGRect(x: 0.125, y: 0, width: 0.75, height: 1)))
+        check(size(square) == (900, 900), "crop to a square -> \(size(square))")
+        let wide = try await svc.saveImageEdit(source: sample, edit: ImageEdit(crop: CGRect(x: 0, y: 0.1, width: 1, height: 0.75)))
+        check(size(wide) == (1200, 675), "crop to 16:9 -> \(size(wide))")
+        let lossy = try await svc.saveImageEdit(source: sample, edit: ImageEdit(quality: 0.4))
+        check(bytes(lossy) < bytes(sample), "lower quality writes a smaller JPEG")
 
         // video compress
         let clip = dir.appendingPathComponent("clip.mov")
-        let v = try await svc.apply(.compressVideo(height: 480), to: clip)
+        let v = try await svc.compressVideo(source: clip, height: 480)
         let asset = AVURLAsset(url: v)
         let track = try await asset.loadTracks(withMediaType: .video).first
         let dims = try await track?.load(.naturalSize)

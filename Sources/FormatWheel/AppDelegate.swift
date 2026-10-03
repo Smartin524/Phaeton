@@ -55,7 +55,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // A wrench for everything that has an editor: pictures, video, audio and PDFs.
             let allPDF = urls.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
             self.wheel.show(kind: kind, formats: formats, batch: BatchAction.available(kind: kind, urls: urls),
-                            hasTools: kind != .document || allPDF, count: urls.count, at: point)
+                            hasTools: kind != .document || allPDF, at: point)
         }
         monitor.onEnd = { [weak self] in
             // Let a drop landing on the wheel finish before hiding it.
@@ -76,10 +76,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.hudShown = false
             self?.hudCenter = nil
         }
+        installHiddenMenus()
         NSApp.servicesProvider = self
         NSUpdateDynamicServices()
         monitor.start()
         refresh()
+    }
+
+    /// The app has no menu bar of its own, so text fields in the editor windows would not answer
+    /// ⌘C / ⌘V / ⌘A / ⌘Z and ⌘W would do nothing. An unseen main menu fixes both: key equivalents
+    /// work while a window is active even though the menu bar never shows.
+    private func installHiddenMenus() {
+        let main = NSMenu()
+        func attach(_ submenu: NSMenu) {
+            let item = NSMenuItem()
+            item.submenu = submenu
+            main.addItem(item)
+        }
+        attach(NSMenu())                                       // the application menu, left empty
+
+        let edit = NSMenu(title: "Edit")
+        func add(_ title: String, _ action: Selector, _ key: String, shift: Bool = false) {
+            let item = edit.addItem(withTitle: title, action: action, keyEquivalent: key)
+            if shift { item.keyEquivalentModifierMask = [.command, .shift] }
+        }
+        add("Undo", Selector(("undo:")), "z")
+        add("Redo", Selector(("redo:")), "z", shift: true)
+        edit.addItem(.separator())
+        add("Cut", #selector(NSText.cut(_:)), "x")
+        add("Copy", #selector(NSText.copy(_:)), "c")
+        add("Paste", #selector(NSText.paste(_:)), "v")
+        add("Select All", #selector(NSText.selectAll(_:)), "a")
+        attach(edit)
+
+        let window = NSMenu(title: "Window")
+        window.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        window.addItem(withTitle: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
+        attach(window)
+        NSApp.mainMenu = main
+        NSApp.windowsMenu = window
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

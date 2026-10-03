@@ -123,7 +123,10 @@ extension MediaConverter {
         }
     }
 
-    /// Re-encodes so the file is about `bytes` or smaller. The system chooses the bit rate.
+    /// Re-encodes so the file is `bytes` or smaller. The system's size limit is only approximate (it
+    /// overshot by about 5% in testing), so aim a little under, check the result, and tighten and
+    /// retry if it is still over. A file that cannot be brought under the limit is refused rather
+    /// than handed back too big for the upload it was meant for.
     public func compress(source: URL, toBytes bytes: Int,
                          progress: @escaping @Sendable (Double) -> Void) async throws -> URL {
         let original = (try? source.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? Int.max
@@ -131,18 +134,26 @@ extension MediaConverter {
         let asset = AVURLAsset(url: source)
         guard (try? await asset.load(.isReadable)) == true else { throw ConversionError.unreadableMedia }
         guard (try? await asset.loadTracks(withMediaType: .video).first) != nil else { throw ConversionError.noVideoTrack }
-        let temporary = OutputPublisher.temporaryURL(nextTo: source, fileExtension: "mp4")
-        do {
-            try await export(asset, preset: AVAssetExportPresetHighestQuality, type: .mp4, to: temporary,
-                             fileLengthLimit: Int64(bytes), progress: progress)
-            // Re-encoding a file that is already small can make it bigger; never keep that.
-            let result = (try? temporary.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? Int.max
-            guard result < original else { throw ConversionError.alreadySmall }
-            return try OutputPublisher.publish(temporary, nextTo: source, fileExtension: "mp4", suffix: " 压缩")
-        } catch {
-            OutputPublisher.discard(temporary)
-            throw error
+        var limit = Int(Double(bytes) * 0.92)
+        for attempt in 0..<3 {
+            let temporary = OutputPublisher.temporaryURL(nextTo: source, fileExtension: "mp4")
+            do {
+                try await export(asset, preset: AVAssetExportPresetHighestQuality, type: .mp4, to: temporary,
+                                 fileLengthLimit: Int64(limit)) { progress((Double(attempt) + $0) / 3) }
+                let result = (try? temporary.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? Int.max
+                // Re-encoding a file that is already small can make it bigger; never keep that.
+                guard result < original else { throw ConversionError.alreadySmall }
+                if result <= bytes {
+                    return try OutputPublisher.publish(temporary, nextTo: source, fileExtension: "mp4", suffix: " 压缩")
+                }
+                OutputPublisher.discard(temporary)
+                limit = Int(Double(limit) * Double(bytes) / Double(result) * 0.95)
+            } catch {
+                OutputPublisher.discard(temporary)
+                throw error
+            }
         }
+        throw ConversionError.exportFailed("没能压到这个大小，请把目标调大一些")
     }
 }
 #endif

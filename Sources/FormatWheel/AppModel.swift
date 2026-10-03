@@ -16,6 +16,8 @@ final class AppModel {
 
     private let service = ConversionService()
     private var task: Task<Void, Never>?
+    /// Jobs asked for while another one runs; they start one after another instead of being dropped.
+    private var queue: [(sources: [URL], label: String, work: ToolWork)] = []
 
     func convert(_ sources: [URL], to format: OutputFormat) {
         let service = self.service
@@ -39,8 +41,27 @@ final class AppModel {
         run(sources, label: label, work: work)
     }
 
+    /// Starts the job now, or queues it behind the one that is running.
     private func run(_ sources: [URL], label: String,
                      work: @escaping @Sendable (URL, @escaping @Sendable (Double) -> Void) async throws -> URL) {
+        guard !sources.isEmpty else { return }
+        if isConverting {
+            queue.append((sources, label, work))
+            message = "已加入队列：\(label)（前面还有任务在进行）"
+            onChange?()
+            return
+        }
+        start(sources, label: label, work: work)
+    }
+
+    private func startNext() {
+        guard !isConverting, !queue.isEmpty else { return }
+        let next = queue.removeFirst()
+        start(next.sources, label: next.label, work: next.work)
+    }
+
+    private func start(_ sources: [URL], label: String,
+                       work: @escaping @Sendable (URL, @escaping @Sendable (Double) -> Void) async throws -> URL) {
         guard !isConverting, !sources.isEmpty else { return }
         isConverting = true
         progress = nil
@@ -56,7 +77,8 @@ final class AppModel {
                 do {
                     let output = try await work(source) { value in
                         Task { @MainActor in
-                            guard let self else { return }
+                            // A late update must not repaint a percentage after the job has ended.
+                            guard let self, self.isConverting else { return }
                             self.progress = (Double(index) + value) / Double(sources.count)
                             self.message = "正在\(label)… \(Int(self.progress! * 100))%"
                             self.onChange?()
@@ -80,6 +102,7 @@ final class AppModel {
                 self.onChange?()
                 self.onCancel?()
                 self.onNeedExtras?(sources, label, work)
+                self.startNext()
                 return
             }
             self.finish(outputs: outputs, total: sources.count, failure: failure)
@@ -108,5 +131,6 @@ final class AppModel {
         onChange?()
         let cancelled = (failure as? ConversionError).map { if case .cancelled = $0 { return true } else { return false } } ?? false
         if cancelled { onCancel?() } else { onFinish?(message, outputs.last, failure == nil) }
+        startNext()
     }
 }

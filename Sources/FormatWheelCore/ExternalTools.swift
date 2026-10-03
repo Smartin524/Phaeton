@@ -2,8 +2,8 @@
 import Foundation
 
 /// Optional converters that macOS frameworks cannot do (PDF → DOCX, WebP). They live in a
-/// private virtualenv created by scripts/install-extras.sh; when it is absent the wheel
-/// simply does not offer those formats.
+/// private virtualenv created by scripts/install-extras.sh. The wheel always offers those formats;
+/// when the environment is missing, the app asks to install it on first use.
 enum ExternalTools {
     static let folder = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library/Application Support/Phaeton", isDirectory: true)

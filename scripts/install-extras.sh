@@ -1,7 +1,7 @@
 #!/bin/bash
 # Optional: installs the tools behind PDF→DOCX, WebP and MP3 into a private virtualenv at
-# ~/Library/Application Support/Phaeton. Nothing system-wide is touched. Phaeton hides
-# those two formats until this has been run. Remove the folder to uninstall.
+# ~/Library/Application Support/Phaeton. Nothing system-wide is touched. Phaeton offers
+# to run it the first time one of those formats is used. Remove the folder to uninstall.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 DEST="$HOME/Library/Application Support/Phaeton"

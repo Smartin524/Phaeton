@@ -60,19 +60,6 @@ public enum FileKind: String, Sendable {
         }
     }
 
-    /// Tools offered in the wheel's wrench panel for this kind of file.
-    public var tools: [ToolAction] {
-        switch self {
-        case .image:
-            return [.compressImage, .halveImage, .cropImage(width: 1, height: 1), .cropImage(width: 4, height: 3),
-                    .cropImage(width: 16, height: 9), .cropImage(width: 3, height: 4), .cropImage(width: 9, height: 16)]
-        case .video:
-            return [.compressVideo(height: 1080), .compressVideo(height: 720), .compressVideo(height: 480)]
-        case .audio, .document:
-            return []
-        }
-    }
-
     private static func canonicalExtension(_ url: URL) -> String {
         switch url.pathExtension.lowercased() {
         case "jpeg", "jpe": return "jpg"
@@ -82,41 +69,4 @@ public enum FileKind: String, Sendable {
         case let other: return other
         }
     }
-}
-
-/// An operation that is not a change of format: compress, shrink or crop.
-public enum ToolAction: Hashable, Sendable {
-    case compressImage
-    case halveImage
-    case cropImage(width: Int, height: Int)
-    case compressVideo(height: Int)
-
-    public var title: String {
-        switch self {
-        case .compressImage: return "压缩（JPEG 75%）"
-        case .halveImage: return "尺寸缩小一半"
-        case .cropImage(let w, let h): return "居中裁切 \(w):\(h)"
-        case .compressVideo(let height): return "压缩到 \(height)p"
-        }
-    }
-
-    /// Appended to the file name, e.g. "photo 4x3.jpg".
-    var suffix: String {
-        switch self {
-        case .compressImage: return " 压缩"
-        case .halveImage: return " 50%"
-        case .cropImage(let w, let h): return " \(w)x\(h)"
-        case .compressVideo(let height): return " \(height)p"
-        }
-    }
-}
-
-/// An adapter boundary for conversion backends.
-public protocol FileConversionEngine: Sendable {
-    var supportedOutputFormats: [OutputFormat] { get }
-    func convert(source: URL, to format: OutputFormat) throws -> URL
-}
-
-public extension FileConversionEngine {
-    var supportedOutputFormats: [OutputFormat] { [.png, .jpeg, .heic, .pdf] }
 }

@@ -87,17 +87,17 @@ public struct DocumentConverter: Sendable {
             }
         }
         let folder = try OutputPublisher.makeFolder(nextTo: source)
-        let width = String(document.pageCount).count
-        for index in 0..<document.pageCount {
-            do {
+        do {
+            let width = String(document.pageCount).count
+            for index in 0..<document.pageCount {
                 try Task.checkCancellation()
-            } catch {
-                // The folder is new and holds only our pages; a half-filled one is useless.
-                try? FileManager.default.removeItem(at: folder)
-                throw error
+                let number = String(format: "%0\(width)d", index + 1)
+                try write(page: index, to: folder.appendingPathComponent("\(number).\(format.fileExtension)"))
             }
-            let number = String(format: "%0\(width)d", index + 1)
-            try write(page: index, to: folder.appendingPathComponent("\(number).\(format.fileExtension)"))
+        } catch {
+            // The folder is new and holds only our pages; a half-filled one is useless.
+            try? FileManager.default.removeItem(at: folder)
+            throw error
         }
         return folder
     }
