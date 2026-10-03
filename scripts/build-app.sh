@@ -36,6 +36,11 @@ chmod +x "$APP/Contents/MacOS/FormatWheel"
 plutil -lint "$APP/Contents/Info.plist"
 echo "Built: $(pwd)/$APP"
 echo "Run when ready: open dist/Phaeton.app"
-# Ad-hoc signature (no account, no identity): needed for system notifications and
-# keeps Launch Services / Services menus consistent. Not a distributable signature.
-codesign --force --sign - "$APP" >/dev/null 2>&1 && echo "Ad-hoc signed" || echo "Ad-hoc signing skipped"
+# Ad-hoc signature (no account, no identity). By default macOS would remember an Accessibility or
+# similar grant by the exact build (its cdhash), so every rebuild or update silently invalidates
+# it while the old entry still looks switched on in System Settings. Naming the bundle identifier
+# as the designated requirement keeps the grant valid across builds. (Anyone able to ad-hoc sign
+# code with this identifier would match it, an acceptable trade for an app that is not notarized.)
+BUNDLE_ID="$(plutil -extract CFBundleIdentifier raw Resources/Info.plist)"
+codesign --force --sign - --requirements "=designated => identifier \"$BUNDLE_ID\"" "$APP" >/dev/null 2>&1 \
+  && echo "Ad-hoc signed (stable requirement: identifier $BUNDLE_ID)" || echo "Ad-hoc signing skipped"

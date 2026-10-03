@@ -77,7 +77,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self?.status.refresh()
                 }
             },
-            requestAccessibility: {
+            requestAccessibility: { [weak self] in
+                self?.status.accessibilityRequested = true
                 _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
                 AppStatus.openAccessibilitySettings()
             },

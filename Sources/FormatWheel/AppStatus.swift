@@ -15,6 +15,8 @@ final class AppStatus: ObservableObject {
     @Published var resultURL: URL?
     @Published var notifications = NotificationState.unavailable
     @Published var accessibilityTrusted = false
+    /// Set once the user has pressed "授权", so a stale entry can be explained if it still is not trusted.
+    @Published var accessibilityRequested = false
     @Published var shiftFilterOn = false
     @Published var loginStatus = SMAppService.Status.notRegistered
     @Published var loginError: String?

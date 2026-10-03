@@ -129,6 +129,12 @@ struct HomeView: View {
                 if status.accessibilityTrusted { granted }
                 else { Button("授权", action: actions.requestAccessibility).buttonStyle(PanelButtonStyle()) }
             }
+            if status.accessibilityRequested && !status.accessibilityTrusted {
+                // An entry left by an older build can look switched on and still not count.
+                Text("已在系统设置里打开却没生效？把列表里的“轻與”用“−”删除，再点“授权”重新添加。")
+                    .font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 12).padding(.bottom, 9).padding(.leading, 30)
+            }
             if status.accessibilityTrusted {
                 switchRow(symbol: "cursorarrow.click", title: "按 Shift 时不取消选中",
                           isOn: Binding(get: { status.shiftFilterOn }, set: actions.setShiftFilter),
