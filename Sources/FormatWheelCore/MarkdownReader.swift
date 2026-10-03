@@ -165,8 +165,10 @@ enum MarkdownReader {
         var font = base
         if inline.contains(.stronglyEmphasized) { font = documentFont(base.pointSize, bold: true) }
         if inline.contains(.emphasized) {
-            // Latin text gets a real italic; Chinese has none and stays upright.
-            font = NSFontManager.shared.convert(font, toHaveTrait: .italicFontMask)
+            // Latin text gets a real italic; Chinese has none and stays upright. (A font descriptor, not
+            // NSFontManager: this runs off the main thread.)
+            let italic = font.fontDescriptor.withSymbolicTraits(font.fontDescriptor.symbolicTraits.union(.italic))
+            font = NSFont(descriptor: italic, size: font.pointSize) ?? font
         }
         return font
     }

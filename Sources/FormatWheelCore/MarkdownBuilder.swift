@@ -51,7 +51,7 @@ struct MarkdownBuilder {
             lines.append("")
         }
         if level == 0 { lastTopOrdered = ordered }
-        lines.append(String(repeating: "    ", count: max(0, level)) + marker + " " + text)
+        lines.append(String(repeating: "    ", count: max(0, level)) + marker + " " + Self.escapeLineStart(text))
         inList = true
     }
 
@@ -111,7 +111,10 @@ struct MarkdownBuilder {
                 if span.strike { body = "~~\(body)~~" }
             }
             if let link = span.link, !link.isEmpty {
-                body = "[\(body)](\(link.replacingOccurrences(of: " ", with: "%20")))"
+                // Spaces and parentheses would end the link early.
+                let address = link.replacingOccurrences(of: " ", with: "%20")
+                    .replacingOccurrences(of: "(", with: "%28").replacingOccurrences(of: ")", with: "%29")
+                body = "[\(body)](\(address))"
             }
             out += lead + body + trail
         }

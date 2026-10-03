@@ -8,16 +8,21 @@ import Foundation
 enum DocxMarkdown {
     static func convert(_ url: URL) throws -> String {
         guard let documentXML = try entry("word/document.xml", in: url),
-              let document = try? XMLDocument(data: documentXML),
+              let document = try? parse(documentXML),
               let body = document.rootElement()?.child("body") else {
             throw ConversionError.unreadableDocument
         }
         var reader = Reader(
-            styles: try entry("word/styles.xml", in: url).flatMap { try? XMLDocument(data: $0) }.map(Styles.init) ?? Styles(),
-            numbering: try entry("word/numbering.xml", in: url).flatMap { try? XMLDocument(data: $0) }.map(Numbering.init) ?? Numbering(),
-            links: try entry("word/_rels/document.xml.rels", in: url).flatMap { try? XMLDocument(data: $0) }.map(relationships) ?? [:])
+            styles: try entry("word/styles.xml", in: url).flatMap { try? parse($0) }.map(Styles.init) ?? Styles(),
+            numbering: try entry("word/numbering.xml", in: url).flatMap { try? parse($0) }.map(Numbering.init) ?? Numbering(),
+            links: try entry("word/_rels/document.xml.rels", in: url).flatMap { try? parse($0) }.map(relationships) ?? [:])
         let blocks = reader.blocks(in: body)
         return Reader.write(blocks)
+    }
+
+    /// A file from someone else is untrusted: never fetch external entities while parsing it.
+    private static func parse(_ data: Data) throws -> XMLDocument {
+        try XMLDocument(data: data, options: [.nodeLoadExternalEntitiesNever])
     }
 
     /// One file from inside the .docx (a zip), or nil when the archive does not have it.
@@ -201,7 +206,9 @@ enum DocxMarkdown {
                 switch child.localName {
                 case "r": spans += run(child, link: link ?? field.link, field: &field)
                 case "hyperlink":
-                    let target = child.attr("id").flatMap { links[$0] } ?? child.attr("anchor").map { "#" + $0 }
+                    // Jumps inside the document (table of contents, cross references) have no address
+                    // worth keeping outside Word: their text stays, the link goes.
+                    let target = child.attr("id").flatMap { links[$0] }
                     spans += runs(in: child, link: target, field: &field)
                 case "ins", "smartTag", "customXml", "fldSimple", "bdo", "dir":
                     spans += runs(in: child, link: link, field: &field)
@@ -232,9 +239,11 @@ enum DocxMarkdown {
                     case "begin": field = FieldState()
                     case "separate":
                         field.inResult = true
-                        // HYPERLINK "https://…" fields: the visible result is the link text.
-                        let words = field.instruction.split(separator: "\"")
-                        if field.instruction.trimmingCharacters(in: .whitespaces).hasPrefix("HYPERLINK"), words.count >= 2 {
+                        // HYPERLINK "https://…" fields: the visible result is the link text. With \l the
+                        // target is a place inside the document, which is dropped like anchors above.
+                        let instruction = field.instruction.trimmingCharacters(in: .whitespaces)
+                        let words = instruction.split(separator: "\"")
+                        if instruction.hasPrefix("HYPERLINK"), !instruction.contains("\\l"), words.count >= 2 {
                             field.link = String(words[1])
                         }
                     case "end": field = FieldState()

@@ -151,8 +151,16 @@ enum PDFMarkdown {
         let typedBody = body(scanned: false), scannedBody = body(scanned: true)
 
         var writer = Writer()
-        for page in pages {
-            let kept = page.lines.filter { !repeated.contains(pattern($0.text)) && !isPageNumber($0.text) }
+        for (number, page) in pages.enumerated() {
+            // Headers, footers and page numbers live at the top and bottom of a page; a number or a
+            // repeated phrase in the body (a table cell, a year) is content and stays. A lone number
+            // at the edge is a page number only if it recurs on most pages (caught as repeated) or
+            // matches this page's position: PDF text order can put a table's last cells there too.
+            let edge = Self.edgeCount
+            let kept = page.lines.enumerated().filter { index, line in
+                guard index < edge || index >= page.lines.count - edge else { return true }
+                return !repeated.contains(pattern(line.text)) && !isPageNumber(line.text, page: number + 1)
+            }.map(\.element)
             writer.add(kept, body: page.scanned ? scannedBody : typedBody,
                        full: Double(page.lines.map(\.text.count).max() ?? 0))
         }
@@ -162,12 +170,14 @@ enum PDFMarkdown {
 
     /// Lines that recur on most pages (digits ignored, so "Report · 3" and "Report · 4" match):
     /// running headers and footers, noise between paragraphs.
+    /// How many lines at the top and at the bottom of a page may be a header, footer or page number.
+    private static let edgeCount = 2
+
     private static func runningLines(_ pages: [[Line]]) -> Set<String> {
         guard pages.count >= 3 else { return [] }
         var counts: [String: Int] = [:]
         for page in pages {
-            // Only the top and bottom of a page carry headers and footers.
-            let edges = page.prefix(3) + page.suffix(3)
+            let edges = page.prefix(edgeCount) + page.suffix(edgeCount)
             for key in Set(edges.map { pattern($0.text) }) { counts[key, default: 0] += 1 }
         }
         return Set(counts.filter { Double($0.value) >= Double(pages.count) * 0.5 }.keys)
@@ -177,9 +187,10 @@ enum PDFMarkdown {
         String(text.map { $0.isNumber ? "#" : $0 })
     }
 
-    private static func isPageNumber(_ text: String) -> Bool {
+    private static func isPageNumber(_ text: String, page: Int) -> Bool {
         let core = text.trimmingCharacters(in: CharacterSet(charactersIn: " -–—·|/第页Page"))
-        return !core.isEmpty && core.count <= 4 && core.allSatisfy(\.isNumber)
+        guard !core.isEmpty, core.count <= 4, core.allSatisfy(\.isNumber), let value = Int(core) else { return false }
+        return abs(value - page) <= 1
     }
 
     private static func lines(of text: NSAttributedString) -> [Line] {

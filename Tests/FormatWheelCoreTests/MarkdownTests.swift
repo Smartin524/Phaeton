@@ -64,3 +64,41 @@ final class MarkdownTests: XCTestCase {
         XCTAssertNotNil(text.attribute(.link, at: link.location, effectiveRange: nil))
     }
 }
+
+final class MarkdownEdgeCaseTests: XCTestCase {
+    func testLinksAndListItemsStayIntact() {
+        XCTAssertEqual(MarkdownBuilder.inline([MarkdownSpan(text: "维基", link: "https://zh.wikipedia.org/wiki/A_(B)")]),
+                       "[维基](https://zh.wikipedia.org/wiki/A_%28B%29)")
+        var md = MarkdownBuilder()
+        md.listItem(level: 0, marker: "-", [MarkdownSpan(text: "# 不是标题")])
+        XCTAssertEqual(md.text, "- \\# 不是标题\n")
+    }
+
+    /// A minimal DOCX: an external entity must not be read, and links into the document itself
+    /// (table of contents, cross references) keep their text but lose the useless address.
+    func testDocxIgnoresExternalEntitiesAndInternalLinks() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("docx-\(UUID().uuidString)")
+        let word = folder.appendingPathComponent("word")
+        try FileManager.default.createDirectory(at: word, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let xml = """
+        <?xml version="1.0"?><!DOCTYPE d [<!ENTITY x SYSTEM "file:///etc/hosts">]>
+        <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>
+        <w:p><w:r><w:t>秘密：&x;</w:t></w:r></w:p>
+        <w:p><w:hyperlink w:anchor="_Toc1"><w:r><w:t>第一章</w:t></w:r></w:hyperlink></w:p>
+        </w:body></w:document>
+        """
+        try xml.write(to: word.appendingPathComponent("document.xml"), atomically: true, encoding: .utf8)
+        let docx = folder.appendingPathComponent("test.docx")
+        let zip = Process()
+        zip.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
+        zip.currentDirectoryURL = folder
+        zip.arguments = ["-q", "-r", docx.path, "word"]
+        try zip.run(); zip.waitUntilExit()
+
+        let markdown = try DocxMarkdown.convert(docx)
+        XCTAssertFalse(markdown.contains("localhost"), "an external entity was read")
+        XCTAssertTrue(markdown.contains("第一章"))
+        XCTAssertFalse(markdown.contains("_Toc1"))
+    }
+}
