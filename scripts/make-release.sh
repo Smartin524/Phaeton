@@ -12,6 +12,9 @@ ARCHS="$(lipo -archs dist/Phaeton.app/Contents/MacOS/FormatWheel)"
 echo "Architecture: $ARCHS"
 [[ "$ARCHS" == "arm64" ]] || { echo "expected an arm64-only build, got: $ARCHS" >&2; exit 1; }
 codesign --verify --deep --strict dist/Phaeton.app
+# A release signed ad-hoc would make every user grant Accessibility again after each update.
+codesign -d -r- dist/Phaeton.app 2>&1 | grep -q "certificate leaf" \
+  || { echo "not signed with \"Phaeton Local Signing\"; run scripts/make-signing-identity.sh first" >&2; exit 1; }
 ZIP="dist/Phaeton-$VERSION.zip"
 rm -f "$ZIP" "$ZIP.sha256"
 ditto -c -k --keepParent dist/Phaeton.app "$ZIP"

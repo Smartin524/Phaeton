@@ -36,11 +36,18 @@ chmod +x "$APP/Contents/MacOS/FormatWheel"
 plutil -lint "$APP/Contents/Info.plist"
 echo "Built: $(pwd)/$APP"
 echo "Run when ready: open dist/Phaeton.app"
-# Ad-hoc signature (no account, no identity). By default macOS would remember an Accessibility or
-# similar grant by the exact build (its cdhash), so every rebuild or update silently invalidates
-# it while the old entry still looks switched on in System Settings. Naming the bundle identifier
-# as the designated requirement keeps the grant valid across builds. (Anyone able to ad-hoc sign
-# code with this identifier would match it, an acceptable trade for an app that is not notarized.)
-BUNDLE_ID="$(plutil -extract CFBundleIdentifier raw Resources/Info.plist)"
-codesign --force --sign - --requirements "=designated => identifier \"$BUNDLE_ID\"" "$APP" >/dev/null 2>&1 \
-  && echo "Ad-hoc signed (stable requirement: identifier $BUNDLE_ID)" || echo "Ad-hoc signing skipped"
+# Signing (no Apple account either way). macOS remembers grants such as Accessibility by the app's
+# designated requirement:
+# - with "Phaeton Local Signing" (made once by scripts/make-signing-identity.sh) the requirement is
+#   "this bundle id and this certificate": it survives rebuilds, and only this Mac's private key can
+#   produce a matching app;
+# - otherwise a plain ad-hoc signature: safe, but the requirement is this exact build, so a rebuild
+#   or update needs Accessibility granted again.
+# (A requirement of the bundle id alone would let any program signed with that id inherit the grant.)
+IDENTITY="Phaeton Local Signing"
+if security find-identity -p codesigning 2>/dev/null | grep -q "\"$IDENTITY\""; then
+  codesign --force --sign "$IDENTITY" "$APP" && echo "Signed with \"$IDENTITY\""
+else
+  codesign --force --sign - "$APP" >/dev/null 2>&1 && echo "Ad-hoc signed" || echo "Ad-hoc signing skipped"
+  echo "Tip: run scripts/make-signing-identity.sh once so Accessibility survives rebuilds." >&2
+fi
