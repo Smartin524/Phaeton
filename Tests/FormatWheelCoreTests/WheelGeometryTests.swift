@@ -17,7 +17,9 @@ final class WheelGeometryTests: XCTestCase {
         XCTAssertEqual(geometry.index(atX: 0, y: -r, count: 2), 0)
         XCTAssertEqual(geometry.index(atX: 0, y: r, count: 2), 1)
         XCTAssertEqual(geometry.index(atX: 0, y: -r, count: 5), 0)
-        XCTAssertEqual(geometry.index(atX: 0, y: r, count: 5), 2)
+        // Five sectors: the third one is centred 54° clockwise from the horizontal axis.
+        let angle = 54.0 * .pi / 180
+        XCTAssertEqual(geometry.index(atX: r * cos(angle), y: r * sin(angle), count: 5), 2)
     }
 
     func testCenterOutsideAndInvalidDoNotSelect() {
@@ -34,8 +36,13 @@ final class WheelGeometryTests: XCTestCase {
         XCTAssertEqual(FileKind(URL(fileURLWithPath: "/tmp/a.mp3")), .audio)
         XCTAssertEqual(FileKind(URL(fileURLWithPath: "/tmp/a.pdf")), .document)
         XCTAssertNil(FileKind(URL(fileURLWithPath: "/tmp/a.zip")))
-        XCTAssertEqual(FileKind.image.outputs(for: [png]), [.jpeg, .pdf])
-        XCTAssertEqual(FileKind.document.outputs(for: [URL(fileURLWithPath: "/tmp/a.pdf")]), [.txt])
+        XCTAssertEqual(FileKind.image.outputs(for: [png]), [.jpeg, .webp, .heic, .pdf, .txt])
+        XCTAssertEqual(FileKind.document.outputs(for: [URL(fileURLWithPath: "/tmp/a.pdf")]), [.png, .jpeg, .txt, .docx])
         XCTAssertEqual(OutputFormat.jpeg.fileExtension, "jpg")
+        // Several files at once offer one combined action.
+        let pdf = URL(fileURLWithPath: "/tmp/a.pdf")
+        XCTAssertEqual(BatchAction.available(kind: .document, urls: [pdf, pdf]), .mergePDFs)
+        XCTAssertEqual(BatchAction.available(kind: .image, urls: [png, png]), .mergeImagesToPDF)
+        XCTAssertNil(BatchAction.available(kind: .image, urls: [png]))
     }
 }

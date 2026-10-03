@@ -59,7 +59,10 @@ They carry their own licenses (GPL / AGPL / LGPL); see [THIRD-PARTY.md](THIRD-PA
 
 ## Validation
 
-`bash scripts/validate.sh` runs standalone checks of the conversion engine against `samples/` (images, audio/video, documents, cancel, trim, OCR). They test the engine, not the UI. The `swift test` unit tests need full Xcode (the Command Line Tools lack XCTest) and the author has not run them yet.
+- `swift test`: 22 unit tests (image-conversion safety and pixel details, wheel geometry, file-kind and format rules); needs full Xcode.
+- `bash scripts/validate.sh`: end-to-end checks of the conversion engine against `samples/` (images, audio/video, documents, merge and join, OCR, trim, cancel…). Checks that need the optional components are skipped when they are not installed.
+
+Both test the engine, not the UI; the interface and drag feel have no automated tests.
 
 ## Known limits
 

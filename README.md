@@ -59,7 +59,10 @@ WebP、MP3 和 PDF→DOCX 需要一次性安装（约 250 MB，需联网），�
 
 ## 验证
 
-`bash scripts/validate.sh` 用 `samples/` 里的样本跑一遍转换引擎的独立检查（图片、音视频、文档、取消、剪切、OCR）。它们测的是引擎，不是界面；`swift test` 的单元测试需要完整 Xcode（Command Line Tools 缺 XCTest），作者尚未在本机运行过。
+- `swift test`：22 个单元测试（图片转换的安全与像素细节、轮盘几何、文件类型与格式规则），需要完整 Xcode。
+- `bash scripts/validate.sh`：用 `samples/` 里的样本对转换引擎做端到端检查（图片、音视频、文档、合并拼接、OCR、剪切、取消……）。需要可选组件的检查在没装时自动跳过。
+
+两者测的是引擎，不是界面；界面和拖拽手感没有自动化测试。
 
 ## 已知限制
 
