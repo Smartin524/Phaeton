@@ -7,9 +7,9 @@
 轻量的 macOS 文件转换工具：**按住 Shift 拖动文件，光标处出现轮盘，拖到目标格式上松手**。结果存在原文件旁，原文件不动。灵感来自《GTA V》的武器轮盘和《Apex Legends》的标点系统。
 
 <p align="center">
-  <img src="docs/screenshots/wheel.png" width="230" alt="轮盘">
+  <img src="docs/screenshots/wheel.png" height="300" alt="轮盘">
   &nbsp;&nbsp;
-  <img src="docs/screenshots/image-editor.png" width="520" alt="图片编辑窗口">
+  <img src="docs/screenshots/image-editor.png" height="300" alt="图片编辑窗口">
 </p>
 
 - **打开就能用：** 启动后是一个简单的窗口，说明已启动、开机自启、怎么用、要授权什么；关掉窗口它仍在后台等你拖文件，点 Dock 图标回到窗口。
@@ -17,17 +17,34 @@
 - **触发不需要权限：** 只监听鼠标事件和拖拽剪贴板。
 - **不止转换：** 拖到轮盘左边的**扳手**上，打开带预览的编辑窗口（图片裁切 / 去背景 / 压缩，视频和音频剪切，PDF 拆分）。
 
-## 安装
+## 安装（三步，约一分钟）
 
-需要 Apple 芯片的 Mac，macOS 13+。
+需要 Apple 芯片的 Mac（M1 及以后），macOS 13 或更新。
+
+**第 1 步：打开“终端”。** 按 `⌘ + 空格` 打开聚焦搜索，输入 `终端`（英文系统输入 `Terminal`），回车。
+
+**第 2 步：复制下面这一行，粘贴到终端里，按回车。** 点代码框右上角的复制按钮即可。
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Smartin524/Phaeton/main/scripts/install.sh | bash
 ```
 
-从 [Releases](https://github.com/Smartin524/Phaeton/releases) 下载最新版、校验 SHA-256、装到 `/Applications` 并打开（运行前可先读一下[脚本](scripts/install.sh)）。更新就是再运行一遍。卸载：`rm -rf /Applications/Phaeton.app ~/Library/Application\ Support/Phaeton`。
+**第 3 步：等它跑完。** 看到 Phaeton 的窗口弹出就装好了，终端可以关掉。以后按住 **Shift** 拖文件即可。
 
-没有开发者签名和公证，所以**手动下载 zip** 的版本第一次会被系统拦下：先双击一次，再到“系统设置 → 隐私与安全性”点“仍要打开”（macOS 15 起右键打开已失效）；或运行 `xattr -dr com.apple.quarantine /Applications/Phaeton.app`。用上面的命令安装不会遇到。
+之后：
+- **升级**：再运行一遍上面那一行。
+- **卸载**：在终端运行 `rm -rf /Applications/Phaeton.app ~/Library/Application\ Support/Phaeton`。
+- **想先看看它做了什么**：这一行只是下载并运行[这个脚本](scripts/install.sh)——从 [Releases](https://github.com/Smartin524/Phaeton/releases) 取最新版、校验 SHA-256、装进“应用程序”并打开。
+
+<details>
+<summary>不想用终端？手动下载</summary>
+
+1. 到 [Releases](https://github.com/Smartin524/Phaeton/releases) 下载 `Phaeton.zip`，双击解压，把 `Phaeton.app` 拖进“应用程序”。
+2. 双击打开，系统会提示无法打开。别点“移到废纸篓”，点“完成”。
+3. 打开“系统设置 → 隐私与安全性”，往下找到 Phaeton，点“仍要打开”，输入开机密码。
+
+（没有开发者签名和公证，所以手动下载的版本第一次会被系统拦下；用终端命令安装不会遇到。）
+</details>
 
 ## 能转什么
 

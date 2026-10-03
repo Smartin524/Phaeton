@@ -41,6 +41,7 @@ public struct DocumentConverter: Sendable {
                 case .pdf:
                     let copy = text.copy() as! NSAttributedString
                     try await MainActor.run { try Self.renderPDF(copy, to: temporary) }
+                    Self.setTitle(source.deletingPathExtension().lastPathComponent, ofPDFAt: temporary)
                 default:
                     throw ConversionError.unsupportedFormat
                 }
@@ -158,6 +159,13 @@ public struct DocumentConverter: Sendable {
         let text = pages.joined(separator: "\n\n")
         if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { throw ConversionError.noTextFound }
         return text
+    }
+
+    /// Viewers show the document title (the browser tab, the title bar) instead of "Untitled".
+    private static func setTitle(_ title: String, ofPDFAt url: URL) {
+        guard let document = PDFDocument(url: url) else { return }
+        document.documentAttributes = [PDFDocumentAttribute.titleAttribute: title]
+        document.write(to: url)
     }
 
     @MainActor

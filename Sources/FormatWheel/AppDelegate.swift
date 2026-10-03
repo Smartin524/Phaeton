@@ -18,11 +18,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let status = AppStatus()
     private var mainWindow: MainWindow?
     private var pendingFiles: [URL] = []
+    /// Held for the app's lifetime: without it macOS naps a windowless app and the 30 Hz drag poll runs late.
+    private var activity: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // An ordinary app: a Dock icon and a menu bar, so it can always be found and quit. It keeps
         // listening for drags after its window is closed.
         NSApp.setActivationPolicy(.regular)
+        activity = ProcessInfo.processInfo.beginActivity(
+            options: [.userInitiatedAllowingIdleSystemSleep, .latencyCritical], reason: "Watching for Shift-drag")
         installMenus()
 
         wheel.onDrop = { [weak self] urls, format, center in
@@ -38,7 +42,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.toolWindows.open(urls, kind: kind) { sources, label, work in self.model.perform(sources, label: label, work: work) }
         }
         monitor.onBegin = { [weak self] kind, urls, point in
-            guard let self, !self.model.isConverting, !self.installing else { return }
+            guard let self, !self.installing else { return }
             let formats = kind.outputs(for: urls)
             guard !formats.isEmpty else { return }
             // A wrench for everything that has an editor: pictures, video, audio and PDFs.

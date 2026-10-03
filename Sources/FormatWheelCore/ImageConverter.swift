@@ -99,7 +99,7 @@ public struct ImageConverter: Sendable {
                 }
                 switch format {
                 case .pdf:
-                    try encodePDF(prepared, consumer: consumer)
+                    try encodePDF(prepared, consumer: consumer, title: source.deletingPathExtension().lastPathComponent)
                 default:
                     try encodeRaster(prepared, format: format, quality: quality, consumer: consumer)
                 }
@@ -246,11 +246,12 @@ public struct ImageConverter: Sendable {
         guard CGImageDestinationFinalize(destination) else { throw ConversionError.encodingFailed }
     }
 
-    private func encodePDF(_ image: CGImage, consumer: CGDataConsumer) throws {
+    private func encodePDF(_ image: CGImage, consumer: CGDataConsumer, title: String) throws {
         // One image pixel maps to one PDF point. This preserves aspect and avoids an
         // arbitrary page crop or up/downsampling of the embedded raster image.
         var mediaBox = CGRect(x: 0, y: 0, width: CGFloat(image.width), height: CGFloat(image.height))
-        guard let context = CGContext(consumer: consumer, mediaBox: &mediaBox, nil) else {
+        guard let context = CGContext(consumer: consumer, mediaBox: &mediaBox,
+                                     [kCGPDFContextTitle: title] as CFDictionary) else {
             throw ConversionError.cannotCreateEncoder
         }
         context.beginPDFPage(nil)

@@ -7,9 +7,9 @@
 A lightweight macOS file converter: **hold Shift, drag a file, and a wheel appears at the pointer. Drop on the format you want.** The result is saved next to the original, which is never touched. Inspired by the weapon wheel in GTA V and the ping wheel in Apex Legends.
 
 <p align="center">
-  <img src="docs/screenshots/wheel.png" width="230" alt="The wheel">
+  <img src="docs/screenshots/wheel.png" height="300" alt="The wheel">
   &nbsp;&nbsp;
-  <img src="docs/screenshots/image-editor.png" width="520" alt="Image editor">
+  <img src="docs/screenshots/image-editor.png" height="300" alt="Image editor">
 </p>
 
 - **Opens ready to use:** it starts with a simple window (running, launch at login, how to use it, what to allow). Close it and the app keeps waiting for drags in the background; click its Dock icon to bring the window back.
@@ -17,17 +17,34 @@ A lightweight macOS file converter: **hold Shift, drag a file, and a wheel appea
 - **No permission to trigger:** it only watches mouse events and the drag pasteboard.
 - **More than converting:** drop on the **wrench** at the left of the wheel for an editor with a preview (image crop / background removal / compression, video and audio trim, PDF split).
 
-## Install
+## Install (three steps, about a minute)
 
-Needs an Apple silicon Mac, macOS 13+.
+Needs an Apple silicon Mac (M1 or later) on macOS 13 or newer.
+
+**Step 1: open Terminal.** Press `⌘ Space`, type `Terminal`, press Return.
+
+**Step 2: copy the line below, paste it into Terminal and press Return.** The button at the top right of the box copies it.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Smartin524/Phaeton/main/scripts/install.sh | bash
 ```
 
-It downloads the latest [release](https://github.com/Smartin524/Phaeton/releases), verifies its SHA-256, installs to `/Applications` and opens it (read the [script](scripts/install.sh) first if you like). To update, run it again. Uninstall: `rm -rf /Applications/Phaeton.app ~/Library/Application\ Support/Phaeton`.
+**Step 3: wait for it to finish.** When the Phaeton window appears it is installed and you can close Terminal. From now on, hold **Shift** and drag a file.
 
-There is no developer signature or notarization, so a **manually downloaded zip** is blocked the first time: double-click once, then System Settings ▸ Privacy & Security ▸ Open Anyway (right-click ▸ Open stopped working in macOS 15); or run `xattr -dr com.apple.quarantine /Applications/Phaeton.app`. The command above avoids this.
+Afterwards:
+- **Update:** run the same line again.
+- **Uninstall:** run `rm -rf /Applications/Phaeton.app ~/Library/Application\ Support/Phaeton` in Terminal.
+- **Want to see what it does first?** The line just downloads and runs [this script](scripts/install.sh): it fetches the latest [release](https://github.com/Smartin524/Phaeton/releases), verifies its SHA-256, installs to Applications and opens it.
+
+<details>
+<summary>Prefer not to use Terminal? Download by hand</summary>
+
+1. Download `Phaeton.zip` from [Releases](https://github.com/Smartin524/Phaeton/releases), double-click to unzip, drag `Phaeton.app` into Applications.
+2. Double-click it. macOS says it cannot open it; click Done, not Move to Trash.
+3. Open System Settings ▸ Privacy & Security, scroll down to Phaeton, click Open Anyway and enter your password.
+
+(There is no developer signature or notarization, so a manually downloaded copy is blocked the first time; the Terminal install never is.)
+</details>
 
 ## What it converts
 
