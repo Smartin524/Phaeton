@@ -16,13 +16,20 @@ fi
 if [[ "${FORMATWHEEL_DISABLE_SPM_SANDBOX:-0}" == "1" ]]; then
   SWIFT_FLAGS+=(--disable-sandbox)
 fi
-swift build "${SWIFT_FLAGS[@]}" -c release --product FormatWheel
-BIN_DIR="$(swift build "${SWIFT_FLAGS[@]}" -c release --show-bin-path)"
+swift build ${SWIFT_FLAGS[@]+"${SWIFT_FLAGS[@]}"} -c release --product FormatWheel
+BIN_DIR="$(swift build ${SWIFT_FLAGS[@]+"${SWIFT_FLAGS[@]}"} -c release --show-bin-path)"
 APP="dist/Phaeton.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/FormatWheel" "$APP/Contents/MacOS/FormatWheel"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
-cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+# Icon Composer document → Assets.car (light, dark and tinted appearances) + AppIcon.icns
+# for older macOS. Without Xcode's actool, fall back to the committed light-only icns.
+if ! xcrun actool Resources/AppIcon.icon --compile "$APP/Contents/Resources" --app-icon AppIcon \
+     --platform macosx --minimum-deployment-target 13.0 \
+     --output-partial-info-plist "$(mktemp -d)/partial.plist" >/dev/null 2>&1; then
+  echo "actool unavailable; using Resources/AppIcon.icns (no dark variant)" >&2
+  cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+fi
 cp scripts/install-extras.sh scripts/phaeton_helper.py "$APP/Contents/Resources/"
 chmod +x "$APP/Contents/MacOS/FormatWheel"
 plutil -lint "$APP/Contents/Info.plist"
