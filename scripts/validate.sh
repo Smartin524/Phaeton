@@ -18,7 +18,7 @@ for i in $(seq 1 12); do echo "This is a long sentence number $i, used to build 
 say -f "$WORK/long-speech.txt" -o "$WORK/long.aiff"
 
 failed=0
-for name in media image tools trim audio cancel docs; do
+for name in media image tools trim audio extras cancel docs; do
   echo "== $name"
   bin="$WORK/$name-smoke"
   swiftc "${SDK[@]}" -parse-as-library -o "$bin" Sources/FormatWheelCore/*.swift "validation/$name-smoke.swift" 2>&1 | grep "error:" || true

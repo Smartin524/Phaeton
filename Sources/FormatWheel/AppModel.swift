@@ -24,6 +24,15 @@ final class AppModel {
         }
     }
 
+    /// One output from all the files (merge PDFs, join clips…).
+    func batch(_ sources: [URL], action: BatchAction) {
+        guard let first = sources.first else { return }
+        let service = self.service
+        run([first], label: action.title) { _, progress in
+            try await service.batch(action, sources: sources, progress: progress)
+        }
+    }
+
     /// Runs any per-file job with the usual progress, status and notification handling.
     func perform(_ sources: [URL], label: String,
                  work: @escaping @Sendable (URL, @escaping @Sendable (Double) -> Void) async throws -> URL) {

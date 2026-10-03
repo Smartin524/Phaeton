@@ -264,9 +264,11 @@ public struct MediaConverter: Sendable {
         return bytes > 0 ? Int(bytes) : nil
     }
 
-    private func export(_ asset: AVAsset, preset: String, type: AVFileType, to url: URL,
-                        range: CMTimeRange? = nil, audioMix: AVAudioMix? = nil,
-                        progress: @escaping @Sendable (Double) -> Void) async throws {
+    func export(_ asset: AVAsset, preset: String, type: AVFileType, to url: URL,
+                range: CMTimeRange? = nil, audioMix: AVAudioMix? = nil,
+                videoComposition: AVVideoComposition? = nil, fileLengthLimit: Int64? = nil,
+                keepsPitch: Bool = false,
+                progress: @escaping @Sendable (Double) -> Void) async throws {
         guard let session = AVAssetExportSession(asset: asset, presetName: preset) else {
             throw ConversionError.unsupportedFormat
         }
@@ -274,6 +276,9 @@ public struct MediaConverter: Sendable {
         session.outputFileType = type
         if let range { session.timeRange = range }
         if let audioMix { session.audioMix = audioMix }
+        if let videoComposition { session.videoComposition = videoComposition }
+        if let fileLengthLimit { session.fileLengthLimit = fileLengthLimit }
+        if keepsPitch { session.audioTimePitchAlgorithm = .spectral }
         let box = UncheckedBox(session)
         let poll = Task {
             while !Task.isCancelled {

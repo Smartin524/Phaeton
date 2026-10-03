@@ -17,6 +17,8 @@ final class ProgressHUD {
     private let state = HUDState()
     private var pendingShow: DispatchWorkItem?
     private var pendingHide: DispatchWorkItem?
+    /// Clicking the ring while it works asks to cancel.
+    var onClick: (() -> Void)?
 
     init() {
         panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: Self.size, height: Self.size),
@@ -25,10 +27,9 @@ final class ProgressHUD {
         panel.backgroundColor = .clear
         panel.hasShadow = false
         panel.level = .popUpMenu
-        panel.ignoresMouseEvents = true
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
-        panel.contentView = NSHostingView(rootView: HUDView(state: state))
+        panel.contentView = NSHostingView(rootView: HUDView(state: state) { [weak self] in self?.onClick?() })
     }
 
     func begin(at center: NSPoint) {
@@ -69,6 +70,7 @@ final class ProgressHUD {
 
 private struct HUDView: View {
     @ObservedObject var state: HUDState
+    let onClick: () -> Void
     @State private var spin = false
     private let disc: CGFloat = 76
 
@@ -82,6 +84,9 @@ private struct HUDView: View {
             }
         }
         .frame(width: ProgressHUD.size, height: ProgressHUD.size)
+        .contentShape(Circle())
+        .onTapGesture { if state.phase == .working { onClick() } }
+        .help("点击取消")
     }
 
     @ViewBuilder private var background: some View {

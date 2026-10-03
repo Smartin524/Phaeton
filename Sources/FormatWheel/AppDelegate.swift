@@ -1,9 +1,8 @@
 import AppKit
 import FormatWheelCore
-import UniformTypeIdentifiers
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate {
     private let model = AppModel()
     private let monitor = DragMonitor()
     private let wheel = DropWheel()
@@ -17,12 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var filterItem: NSMenuItem?
     private let filterKey = "StripShiftOnSelected"
     private var statusItem: NSStatusItem?
-    private var stateItem: NSMenuItem?
-    private var revealItem: NSMenuItem?
-    private var toggleItem: NSMenuItem?
-    private var cancelItem: NSMenuItem?
     private var pendingFiles: [URL] = []
-    private var enabled = true
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -31,28 +25,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let icon = NSImage(systemSymbolName: "chart.pie", accessibilityDescription: "Phaeton")
         icon?.isTemplate = true
         item.button?.image = icon
+        // Deliberately tiny: everything else happens by dragging, from Finder's right-click menu,
+        // or by clicking the progress ring.
         let menu = NSMenu()
         menu.autoenablesItems = false
-        menu.delegate = self
-        let state = NSMenuItem(title: model.message, action: nil, keyEquivalent: "")
-        state.isEnabled = false
-        menu.addItem(state)
-        stateItem = state
-        let reveal = menu.addItem(withTitle: "显示最近转换结果", action: #selector(revealResult), keyEquivalent: "")
-        reveal.target = self
-        revealItem = reveal
-        menu.addItem(.separator())
-        let toggle = menu.addItem(withTitle: "启用 Shift 拖动轮盘", action: #selector(toggleEnabled), keyEquivalent: "")
-        toggle.target = self
-        toggle.state = .on
-        toggleItem = toggle
         let filter = menu.addItem(withTitle: "已选中文件时 Shift 不取消选中", action: #selector(toggleShiftFilter), keyEquivalent: "")
         filter.target = self
         filterItem = filter
-        menu.addItem(withTitle: "选择文件转换…", action: #selector(chooseFiles), keyEquivalent: "o").target = self
-        let cancel = menu.addItem(withTitle: "取消转换", action: #selector(cancelConversion), keyEquivalent: "")
-        cancel.target = self
-        cancelItem = cancel
         menu.addItem(.separator())
         menu.addItem(withTitle: "退出 Phaeton", action: #selector(quit), keyEquivalent: "q").target = self
         item.menu = menu
@@ -62,6 +41,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.hudCenter = center
             self?.model.convert(urls, to: format)
         }
+        wheel.onBatch = { [weak self] urls, action, center in
+            self?.hudCenter = center
+            self?.model.batch(urls, action: action)
+        }
         wheel.onTools = { [weak self] urls, kind in
             guard let self else { return }
             self.toolWindows.open(urls, kind: kind) { sources, label, work in self.model.perform(sources, label: label, work: work) }
@@ -70,13 +53,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             guard let self, !self.model.isConverting, !self.installing else { return }
             let formats = kind.outputs(for: urls)
             guard !formats.isEmpty else { return }
-            self.wheel.show(kind: kind, formats: formats, count: urls.count, at: point)
+            // A wrench for everything that has an editor: pictures, video, audio and PDFs.
+            let allPDF = urls.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
+            self.wheel.show(kind: kind, formats: formats, batch: BatchAction.available(kind: kind, urls: urls),
+                            hasTools: kind != .document || allPDF, count: urls.count, at: point)
         }
         monitor.onEnd = { [weak self] in
             // Let a drop landing on the wheel finish before hiding it.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { self?.wheel.hide() }
         }
         model.onChange = { [weak self] in self?.refresh() }
+        hud.onClick = { [weak self] in self?.model.cancel() }
         model.onFinish = { [weak self] message, url, success in
             self?.hud.end(success: success)
             self?.hudShown = false
@@ -105,8 +92,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         shiftFilter.stop()
     }
 
-    func menuWillOpen(_ menu: NSMenu) { refresh() }
-
     private func refresh() {
         // The ring appears where the wheel was (or at the pointer for jobs started from a window).
         if model.isConverting {
@@ -117,20 +102,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             hud.update(progress: model.progress)
         }
         statusItem?.button?.toolTip = model.message
-        stateItem?.title = model.message
-        revealItem?.isEnabled = model.resultURL != nil
-        cancelItem?.isEnabled = model.isConverting
         if let progress = model.progress {
             statusItem?.button?.title = " \(Int(progress * 100))%"
         } else {
             statusItem?.button?.title = model.isConverting ? " …" : ""
         }
-    }
-
-    @objc private func toggleEnabled() {
-        enabled.toggle()
-        toggleItem?.state = enabled ? .on : .off
-        enabled ? monitor.start() : monitor.stop()
     }
 
     /// Needs Accessibility permission. If it is missing the system asks; the switch stays off
@@ -166,7 +142,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         installing = true
         hud.begin(at: hudCenter ?? NSEvent.mouseLocation)
         hud.update(progress: nil)
-        stateItem?.title = "正在安装可选组件…"
+        statusItem?.button?.toolTip = "正在安装可选组件…"
         Task { @MainActor in
             let failure = await ExtrasInstaller.install()
             installing = false
@@ -182,21 +158,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             refresh()
         }
-    }
-
-    @objc private func cancelConversion() { model.cancel() }
-
-    @objc private func chooseFiles() {
-        guard !model.isConverting else { return }
-        NSApp.activate(ignoringOtherApps: true)
-        let panel = NSOpenPanel()
-        panel.message = "选择要转换的文件（图片、音频、视频、PDF 或文档）"
-        let extra = ["docx", "doc", "odt", "rtfd"].compactMap { UTType(filenameExtension: $0) }
-        panel.allowedContentTypes = [.image, .audio, .movie, .pdf, .plainText, .rtf] + extra
-        panel.allowsMultipleSelection = true
-        panel.canChooseDirectories = false
-        guard panel.runModal() == .OK else { return }
-        presentFormatMenu(for: panel.urls)
     }
 
     /// Asks which format to convert `urls` to, in a menu at the pointer. Used by the
@@ -230,11 +191,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard let raw = sender.representedObject as? String, let format = OutputFormat(rawValue: raw) else { return }
         model.convert(pendingFiles, to: format)
         pendingFiles = []
-    }
-
-    @objc private func revealResult() {
-        guard let url = model.resultURL else { return }
-        NSWorkspace.shared.activateFileViewerSelecting([url])
     }
 
     @objc private func quit() {

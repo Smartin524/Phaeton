@@ -53,6 +53,8 @@ final class ToolWindows: NSObject, NSWindowDelegate {
         let content: NSView
         switch kind {
         case .image: content = NSHostingView(rootView: ImageToolView(urls: urls, perform: run, close: close, fit: fit))
+        case .document:
+            content = NSHostingView(rootView: PDFToolView(urls: urls, perform: run, close: close, fit: fit))
         case .audio:
             window.minSize = NSSize(width: Self.panelWidth + 320, height: 380)
             window.setContentSize(NSSize(width: Self.panelWidth + 420, height: 380))
@@ -80,7 +82,7 @@ final class ToolWindows: NSObject, NSWindowDelegate {
     }
 }
 
-private func formatBytes(_ bytes: Int) -> String {
+func formatBytes(_ bytes: Int) -> String {
     ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
 }
 
@@ -108,7 +110,7 @@ private struct EditKey: Hashable {
 }
 
 /// A pill button, filling its grid cell: accent fill when selected.
-private struct Chip: View {
+struct Chip: View {
     let title: String
     let selected: Bool
     let action: () -> Void
@@ -128,7 +130,7 @@ private struct Chip: View {
     }
 }
 
-private struct ChipGrid<Content: View>: View {
+struct ChipGrid<Content: View>: View {
     let columns: Int
     @ViewBuilder let content: Content
 
@@ -138,7 +140,7 @@ private struct ChipGrid<Content: View>: View {
 }
 
 /// A quiet caption above a group of controls.
-private struct Section<Content: View>: View {
+struct Section<Content: View>: View {
     let caption: String
     @ViewBuilder let content: Content
 
@@ -151,7 +153,7 @@ private struct Section<Content: View>: View {
 }
 
 /// A push button that fills the panel's width.
-private struct WideButton: View {
+struct WideButton: View {
     let title: String
     let action: () -> Void
 
@@ -162,7 +164,7 @@ private struct WideButton: View {
 }
 
 /// The fixed-width panel on the right: controls on top, buttons at the bottom.
-private struct SidePanel<Content: View, Footer: View>: View {
+struct SidePanel<Content: View, Footer: View>: View {
     @ViewBuilder let content: Content
     @ViewBuilder let footer: Footer
 
@@ -193,6 +195,7 @@ struct ImageToolView: View {
     @State private var aspect = Aspect.all[0]
     @State private var compression = Compression.all[0]
     @State private var info = ""
+    @State private var page = 0
 
     private var isBatch: Bool { urls.count > 1 }
 
@@ -232,6 +235,14 @@ struct ImageToolView: View {
         HStack(spacing: 0) {
             canvas.padding(.top, 12).padding(.horizontal, 12).padding(.bottom, 12)
             SidePanel {
+                Picker("", selection: $page) {
+                    Text("裁切").tag(0)
+                    Text("更多").tag(1)
+                }
+                .pickerStyle(.segmented).labelsHidden()
+                if page == 1 {
+                    ImageMoreTools(urls: urls, perform: perform, close: close)
+                } else {
                 if isBatch {
                     Text("共 \(urls.count) 张：画质应用到全部，裁切仅支持单张。")
                         .font(.system(size: 12)).foregroundStyle(.secondary)
@@ -264,6 +275,7 @@ struct ImageToolView: View {
                 }
                 if !info.isEmpty {
                     Text(info).font(.system(size: 11)).foregroundStyle(.secondary)
+                }
                 }
             } footer: {
                 HStack(spacing: 8) {
@@ -512,7 +524,7 @@ private struct VideoTarget: Hashable {
                       VideoTarget(title: "480p", height: 480), VideoTarget(title: "原尺寸", height: 0)]
 }
 
-private func clock(_ seconds: Double) -> String {
+func clock(_ seconds: Double) -> String {
     let tenths = Int((max(0, seconds) * 10).rounded())
     return String(format: "%d:%02d.%d", tenths / 600, (tenths / 10) % 60, tenths % 10)
 }
@@ -731,8 +743,7 @@ struct VideoToolView: View {
     let fit: (CGSize) -> Void
 
     @StateObject private var model: VideoEditorModel
-    @State private var target = VideoTarget.all[1]
-    @State private var estimate = ""
+    @State private var page = 0
 
     private var isBatch: Bool { urls.count > 1 }
 
@@ -760,6 +771,15 @@ struct VideoToolView: View {
             .padding(.top, 12).padding(.horizontal, 12).padding(.bottom, 12)
             SidePanel {
                 if !isBatch {
+                    Picker("", selection: $page) {
+                        Text("剪辑").tag(0)
+                        Text("更多").tag(1)
+                    }
+                    .pickerStyle(.segmented).labelsHidden()
+                }
+                if page == 1 || isBatch {
+                    VideoMoreTools(urls: urls, perform: perform, close: close)
+                } else {
                     Section(caption: "片段 · 快速剪切，不重新编码") {
                         HStack {
                             Text(clock(model.start)).font(.system(size: 12).monospacedDigit())
@@ -779,15 +799,6 @@ struct VideoToolView: View {
                         WideButton(title: "保存为图片", action: saveFrame)
                     }
                 }
-                Section(caption: "压缩") {
-                    ChipGrid(columns: 2) {
-                        ForEach(VideoTarget.all, id: \.self) { choice in
-                            Chip(title: choice.title, selected: target == choice) { target = choice }
-                        }
-                    }
-                    if !estimate.isEmpty { Text("约 \(estimate)").font(.system(size: 11)).foregroundStyle(.secondary) }
-                    WideButton(title: "开始压缩", action: saveCompressed)
-                }
             } footer: {
                 HStack {
                     Spacer()
@@ -800,12 +811,6 @@ struct VideoToolView: View {
         .onDisappear { model.shutdown() }
         .task {
             if let size = await model.load() { fit(size) }
-        }
-        .task(id: target) {
-            estimate = ""
-            let url = urls[0], height = target.height
-            let bytes = await MediaConverter().estimateCompressedBytes(source: url, height: height)
-            if let bytes, !Task.isCancelled { estimate = formatBytes(bytes) }
         }
     }
 
@@ -821,14 +826,6 @@ struct VideoToolView: View {
     private func saveFrame() {
         let seconds = model.current
         perform("保存画面") { source, _ in try await MediaConverter.extractFrame(source: source, at: seconds) }
-    }
-
-    private func saveCompressed() {
-        let height = target.height
-        perform("压缩视频") { source, progress in
-            try await MediaConverter().compress(source: source, height: height, progress: progress)
-        }
-        close()
     }
 }
 

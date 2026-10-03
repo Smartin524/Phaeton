@@ -9,6 +9,7 @@ import ImageIO
         var failed = false
         for f in FileKind.image.outputs(for: [src]) {
             if f == .webp && !ExternalTools.isInstalled { print("SKIP webp (optional components not installed)"); continue }
+            if f == .txt { continue }   // text recognition is checked in extras-smoke, the sample has no text
             do {
                 let out = try await ConversionService().convert(source: src, to: f)
                 var info = "pdf"

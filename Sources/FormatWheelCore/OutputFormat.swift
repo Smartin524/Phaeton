@@ -40,7 +40,7 @@ public enum FileKind: String, Sendable {
     public func outputs(for urls: [URL]) -> [OutputFormat] {
         let all: [OutputFormat]
         switch self {
-        case .image: all = [.png, .jpeg, .webp, .heic, .pdf]
+        case .image: all = [.png, .jpeg, .webp, .heic, .pdf, .txt]
         case .audio: all = [.m4a, .wav, .aiff, .mp3]
         case .video: all = [.m4a, .wav, .aiff, .mp3, .mp4, .mov]
         case .document:

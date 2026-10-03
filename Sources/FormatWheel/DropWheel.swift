@@ -28,11 +28,13 @@ extension ToolAction {
 /// One sector of the wheel: a target format, or the wrench that opens the tool panel.
 enum WheelEntry: Hashable {
     case format(OutputFormat)
+    case batch(BatchAction)
     case tools
 
     var title: String {
         switch self {
         case .format(let format): return format.title
+        case .batch(let action): return action.title
         case .tools: return "工具"
         }
     }
@@ -40,6 +42,7 @@ enum WheelEntry: Hashable {
     var symbol: String {
         switch self {
         case .format(let format): return format.symbol
+        case .batch: return "rectangle.stack"
         case .tools: return "wrench.fill"
         }
     }
@@ -62,6 +65,7 @@ final class DropWheel {
     private let state = WheelState()
     private let dropView = DropView(frame: NSRect(x: 0, y: 0, width: size, height: size))
     var onDrop: (([URL], OutputFormat, NSPoint) -> Void)?
+    var onBatch: (([URL], BatchAction, NSPoint) -> Void)?
     var onTools: (([URL], FileKind) -> Void)?
 
     init() {
@@ -86,15 +90,16 @@ final class DropWheel {
             self.hide()
             switch entry {
             case .format(let format): self.onDrop?(urls, format, center)
+            case .batch(let action): self.onBatch?(urls, action, center)
             case .tools: self.onTools?(urls, kind)
             }
         }
     }
 
-    func show(kind: FileKind, formats: [OutputFormat], count: Int, at pointer: NSPoint) {
-        // Images, videos and audio get the wrench; documents have nothing to edit.
-        let hasTools = kind != .document
-        let entries = formats.map(WheelEntry.format) + (hasTools ? [.tools] : [])
+    func show(kind: FileKind, formats: [OutputFormat], batch: BatchAction?, hasTools: Bool,
+              count: Int, at pointer: NSPoint) {
+        let entries = formats.map(WheelEntry.format) + (batch.map { [WheelEntry.batch($0)] } ?? [])
+            + (hasTools ? [.tools] : [])
         state.hovered = nil
         state.entries = entries
         state.count = count

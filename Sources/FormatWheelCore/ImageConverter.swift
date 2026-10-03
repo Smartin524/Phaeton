@@ -290,6 +290,10 @@ public enum ConversionError: Error, LocalizedError, Sendable {
     case extrasNotInstalled
     case tooManyPages(Int)
     case alreadySmall
+    case noSubject
+    case needsNewerSystem(String)
+    case invalidPages(String)
+    case notEnoughFiles
 
     public var errorDescription: String? {
         switch self {
@@ -337,6 +341,14 @@ public enum ConversionError: Error, LocalizedError, Sendable {
             return "没有识别到文字。"
         case .unreadableDocument:
             return "无法读取这个文档，可能已损坏或格式不受支持。"
+        case .noSubject:
+            return "没有找到可以抠出的主体。"
+        case .needsNewerSystem(let feature):
+            return "\(feature)需要 macOS 14 或更高版本。"
+        case .invalidPages(let text):
+            return "页码无效：\(text)。请输入类似 1-3,5 的页码。"
+        case .notEnoughFiles:
+            return "至少需要两个文件。"
         case .alreadySmall:
             return "这个文件已经很小，压缩后反而更大，没有生成新文件。"
         case .tooManyPages(let limit):

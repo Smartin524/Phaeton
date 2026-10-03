@@ -14,7 +14,7 @@ A lightweight macOS menu-bar file converter: **hold Shift, drag a file, and a wh
 
 | Dragged file | Formats on the wheel |
 |---|---|
-| Image (incl. SVG) | PNG / JPEG / WebP\* / HEIC / PDF |
+| Image (incl. SVG) | PNG / JPEG / WebP\* / HEIC / PDF / TXT (text recognised in the picture) |
 | Video | M4A / WAV / AIFF (audio extraction), MP3\*, MP4 / MOV |
 | Audio | M4A / WAV / AIFF / MP3\* |
 | PDF | PNG / JPEG (a folder for multi-page), TXT (OCR when there is no text layer), DOCX\* |
@@ -22,19 +22,22 @@ A lightweight macOS menu-bar file converter: **hold Shift, drag a file, and a wh
 
 \* needs the [optional components](#optional-components); Phaeton asks before installing them on first use. A format the file already has is hidden.
 
-The last sector of the wheel for images, video and audio is a **wrench**: drop on it to open an editor window.
+**Dragging several files** adds a sector: several images → **merge into one PDF**, several PDFs → **merge**, several videos or audio files → **join**.
+
+The last sector of the wheel for images, video, audio and PDFs is a **wrench**: drop on it to open an editor window.
 
 | | In the window |
 |---|---|
-| Image | draggable crop box, fixed ratios, exact width × height; three quality levels for JPEG / HEIC with a size estimate |
-| Video | thumbnail timeline to pick start and end, **fast trim** (no re-encode, lossless, starts on a key frame); save the current frame as PNG; compress to 1080p / 720p / 480p |
+| Image | Crop page: draggable box, fixed ratios, exact width × height; three quality levels for JPEG / HEIC with a size estimate. More page: **remove background** (transparent PNG, macOS 14+), strip location and other metadata, **compress to a target size**, copy the text in the picture, read QR codes |
+| Video | Edit page: thumbnail timeline, **fast trim** (no re-encode, lossless, starts on a key frame), save the current frame as PNG. More page: compress to 1080p / 720p / 480p, **compress to a target size**, mute, change speed (0.5× – 2×) |
 | Audio | waveform to pick start and end; optional 1 s fade in / out; copied losslessly without fades, re-encoded to M4A with them |
+| PDF | preview; extract pages (e.g. `1-3,5`) into a new PDF; split into one PDF per page |
 
 ## Other entry points and details
 
 - **Finder right-click:** Quick Actions / Services ▸ "用 Phaeton 转换…". If missing, enable it in System Settings ▸ Keyboard ▸ Keyboard Shortcuts ▸ Services.
-- **Menu bar:** "Choose files…", cancel, reveal last result.
-- **Progress and notifications:** after the drop the wheel turns into a progress ring where it was; a system notification when done (asks permission once).
+- **Menu bar:** just one settings switch and Quit; everything else is dragging, right-click and notifications.
+- **Progress and notifications:** after the drop the wheel turns into a progress ring where it was, and **clicking the ring cancels**; a system notification when done (asks permission once) reveals the result when clicked.
 - **Shift on a selected file deselects it** (that is Finder's own behavior): start the drag first, then press Shift; or enable "Shift does not deselect selected files" in the menu (needs Accessibility, off by default).
 - **Safety:** output is written to a hidden temp file and renamed atomically; existing files are never overwritten (names get a counter); failures and cancels leave nothing behind.
 
