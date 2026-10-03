@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installs the latest Phaeton release:
+# Installs the latest Phaeton release (Apple silicon, macOS 13+):
 #   curl -fsSL https://raw.githubusercontent.com/Smartin524/Phaeton/main/scripts/install.sh | bash
 # It downloads the zip from the GitHub release with curl (so the app is not quarantined and no
 # "unidentified developer" prompt appears), checks its SHA-256, copies it to /Applications
@@ -8,6 +8,7 @@ set -euo pipefail
 REPO="${PHAETON_REPO:-Smartin524/Phaeton}"
 
 [[ "$(uname -s)" == "Darwin" ]] || { echo "Phaeton is for macOS." >&2; exit 1; }
+[[ "$(uname -m)" == "arm64" ]] || { echo "Phaeton needs a Mac with Apple silicon (M1 or later)." >&2; exit 1; }
 major="$(sw_vers -productVersion | cut -d. -f1)"
 (( major >= 13 )) || { echo "Phaeton needs macOS 13 or later." >&2; exit 1; }
 

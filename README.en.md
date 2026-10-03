@@ -13,7 +13,7 @@ A lightweight macOS menu-bar file converter: **hold Shift, drag a file, and a wh
 
 ## Install
 
-**One command** (macOS 13+, Apple silicon and Intel):
+**One command** (Apple silicon Mac, macOS 13+):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Smartin524/Phaeton/main/scripts/install.sh | bash
@@ -21,7 +21,12 @@ curl -fsSL https://raw.githubusercontent.com/Smartin524/Phaeton/main/scripts/ins
 
 It downloads the latest zip from [Releases](https://github.com/Smartin524/Phaeton/releases), verifies its SHA-256, installs to `/Applications` (or `~/Applications` if that is not writable) and opens it. Read the [script](scripts/install.sh) before running it; it is short. To update, run it again.
 
-**Manual install:** download the zip from Releases, unzip, drag `Phaeton.app` into Applications. The app has no developer signature or notarization, so a browser-downloaded copy is blocked the first time: right-click ▸ Open, or run `xattr -dr com.apple.quarantine /Applications/Phaeton.app`. Installing with the command above avoids that prompt.
+**Manual install:** download the zip from Releases, unzip, drag `Phaeton.app` into Applications. The app has no developer signature or notarization, so a browser-downloaded copy is blocked the first time ("cannot verify the developer"). The two usual fixes:
+
+1. **Allow it in System Settings:** double-click the app once so it gets blocked, then open System Settings ▸ Privacy & Security, scroll to the bottom, find "Phaeton was blocked" and click **Open Anyway**, then enter your password. Needed once. (Since macOS 15 the old right-click ▸ Open trick no longer works.)
+2. **Remove the quarantine flag in Terminal:** `xattr -dr com.apple.quarantine /Applications/Phaeton.app`
+
+Installing with the one-liner above avoids the prompt, because files downloaded on the command line carry no quarantine flag.
 
 **Uninstall:** `rm -rf /Applications/Phaeton.app ~/Library/Application\ Support/Phaeton` (the second path holds the optional components).
 
@@ -86,7 +91,7 @@ Both test the engine, not the UI; the interface and drag feel have no automated 
 - Detection relies on macOS delivering global mouse events to a background app; if it does not, the wheel will not appear. Use the right-click or menu-bar entry.
 - Not supported: MKV / WebM / AVI input, FLAC / OGG output, Office → PDF other than Word.
 - PDF → DOCX does not guarantee complex layouts; scanned PDFs are not OCR'd.
-- No developer signature or notarization (see Install); the UI and drag feel have no automated tests; the Intel build compiles but has not been tested on real hardware.
+- No developer signature or notarization (see Install); the UI and drag feel have no automated tests.
 
 ## Layout
 

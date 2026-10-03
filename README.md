@@ -13,7 +13,7 @@
 
 ## 安装
 
-**一行命令**（macOS 13+，Apple 芯片和 Intel 都行）：
+**一行命令**（需要 Apple 芯片的 Mac 和 macOS 13+）：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Smartin524/Phaeton/main/scripts/install.sh | bash
@@ -21,7 +21,12 @@ curl -fsSL https://raw.githubusercontent.com/Smartin524/Phaeton/main/scripts/ins
 
 它从 [Releases](https://github.com/Smartin524/Phaeton/releases) 下载最新的 zip，校验 SHA-256，装到 `/Applications`（没有权限就装到 `~/Applications`）并打开。运行前请先读一下[脚本](scripts/install.sh)，它很短。更新就是再运行一遍。
 
-**手动安装：** 从 Releases 下载 zip，解压后把 `Phaeton.app` 拖进“应用程序”。因为没有开发者签名和公证，浏览器下载的版本第一次打开会被系统拦下：右键 → 打开，或在终端运行 `xattr -dr com.apple.quarantine /Applications/Phaeton.app`。用上面的命令安装则不会遇到这个提示。
+**手动安装：** 从 Releases 下载 zip，解压后把 `Phaeton.app` 拖进“应用程序”。因为没有开发者签名和公证，浏览器下载的版本第一次打开会被系统拦下（提示“无法验证开发者”之类）。常见的解决办法有两种：
+
+1. **系统设置里放行：** 先双击打开一次让它被拦下，然后打开“系统设置 → 隐私与安全性”，滚到底部找到 “Phaeton 已被阻止”，点**“仍要打开”**，输入密码。只需要这一次。（macOS 15 起，以前的“右键 → 打开”已经不管用了。）
+2. **终端去掉隔离标记：** `xattr -dr com.apple.quarantine /Applications/Phaeton.app`
+
+用上面的一行命令安装则不会遇到这个提示，因为命令行下载的文件不带隔离标记。
 
 **卸载：** `rm -rf /Applications/Phaeton.app ~/Library/Application\ Support/Phaeton`（后者是可选组件）。
 
@@ -86,7 +91,7 @@ WebP、MP3 和 PDF→DOCX 需要一次性安装（约 250 MB，需联网），�
 - 拖拽监听依赖 macOS 向后台应用传递全局鼠标事件；收不到时轮盘不会出现，可用右键或菜单栏入口。
 - 不支持：MKV / WebM / AVI 输入、FLAC / OGG 输出、Word 以外的 Office 转 PDF。
 - PDF→DOCX 对复杂排版不保证还原，扫描件不做文字识别。
-- 没有开发者签名和公证（见上面的安装说明）；界面、拖拽手感没有自动化测试；Intel 版本编译了但没有实机测试。
+- 没有开发者签名和公证（见上面的安装说明）；界面、拖拽手感没有自动化测试。
 
 ## 结构
 
