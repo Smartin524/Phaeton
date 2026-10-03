@@ -13,7 +13,7 @@ trap 'rm -rf "$WORK"' EXIT
 # Everything the checks need is generated here, nothing is read from the repository:
 # a drawn picture and a transparent cut-out, an SVG, system-voice speech, and a few text documents.
 # (The video clip is made by the "media" check itself.)
-swiftc "${SDK[@]}" -o "$WORK/make-samples" scripts/make-samples.swift 2>&1 | grep "error:" || true
+swiftc ${SDK[@]+"${SDK[@]}"} -o "$WORK/make-samples" scripts/make-samples.swift 2>&1 | grep "error:" || true
 "$WORK/make-samples" "$WORK" >/dev/null
 cat > "$WORK/logo.svg" <<'SVG'
 <svg xmlns="http://www.w3.org/2000/svg" width="240" height="160" viewBox="0 0 240 160">
@@ -36,7 +36,7 @@ failed=0
 for name in media image tools trim audio extras cancel docs; do
   echo "== $name"
   bin="$WORK/$name-smoke"
-  swiftc "${SDK[@]}" -parse-as-library -o "$bin" Sources/FormatWheelCore/*.swift "validation/$name-smoke.swift" 2>&1 | grep "error:" || true
+  swiftc ${SDK[@]+"${SDK[@]}"} -parse-as-library -o "$bin" Sources/FormatWheelCore/*.swift "validation/$name-smoke.swift" 2>&1 | grep "error:" || true
   run="$WORK/run-$name"
   mkdir "$run"
   find "$WORK" -maxdepth 1 -type f ! -name "*.out" -exec cp {} "$run/" \;
