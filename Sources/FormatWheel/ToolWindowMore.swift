@@ -109,7 +109,7 @@ struct SizeRow: View {
                 Text(unit.rawValue).font(.system(size: 12, weight: .medium))
             }
             .menuStyle(.borderlessButton).fixedSize()
-            Button("压缩", action: action).controlSize(.small).font(.system(size: 12, weight: .medium))
+            Button("压缩", action: action).buttonStyle(PanelButtonStyle())
         }
     }
 }
@@ -204,7 +204,7 @@ struct PDFToolView: View {
                         HStack(spacing: 6) {
                             TextField("例如 1-3,5", text: $pages).textFieldStyle(.roundedBorder)
                                 .font(.system(size: 12)).controlSize(.small)
-                            Button("提取", action: extract).controlSize(.small).font(.system(size: 12, weight: .medium))
+                            Button("提取", action: extract).buttonStyle(PanelButtonStyle())
                         }
                         if !status.isEmpty { Text(status).font(.system(size: 11)).foregroundStyle(.red) }
                     }
@@ -217,7 +217,7 @@ struct PDFToolView: View {
             } footer: {
                 HStack {
                     Spacer()
-                    Button("关闭", action: close).keyboardShortcut(.cancelAction)
+                    Button("关闭", action: close).keyboardShortcut(.cancelAction).buttonStyle(PanelButtonStyle())
                 }
             }
         }

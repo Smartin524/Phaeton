@@ -152,7 +152,34 @@ struct Section<Content: View>: View {
     }
 }
 
-/// A small two-or-more way switch: quiet grey track, the chosen item on a lighter pill.
+/// The one button look used in every panel, so colours never drift: a flat Claude-orange primary
+/// button with white text, and a flat grey secondary one. (The system styles add their own
+/// gradients and follow the user's accent colour.)
+struct PanelButtonStyle: ButtonStyle {
+    var prominent = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        StyledLabel(configuration: configuration, prominent: prominent)
+    }
+
+    struct StyledLabel: View {
+        let configuration: ButtonStyleConfiguration
+        let prominent: Bool
+        @Environment(\.isEnabled) private var isEnabled
+
+        var body: some View {
+            configuration.label
+                .font(.system(size: 12, weight: .medium))
+                .padding(.horizontal, 12).padding(.vertical, 5)
+                .foregroundStyle(prominent ? Color.white : Color.primary)
+                .background(RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(prominent ? Theme.accent : Color.primary.opacity(configuration.isPressed ? 0.17 : 0.09)))
+                .opacity(isEnabled ? (configuration.isPressed && prominent ? 0.8 : 1) : 0.4)
+        }
+    }
+}
+
+/// A small two-or-more way switch: quiet grey track, the chosen item in the theme colour.
 struct Tabs: View {
     let titles: [String]
     @Binding var selection: Int
@@ -162,11 +189,11 @@ struct Tabs: View {
             ForEach(Array(titles.enumerated()), id: \.offset) { index, title in
                 Button { selection = index } label: {
                     Text(title)
-                        .font(.system(size: 12, weight: selection == index ? .semibold : .regular))
-                        .foregroundStyle(selection == index ? Color.primary : Color.secondary)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(selection == index ? Color.white : Color.secondary)
                         .frame(maxWidth: .infinity).padding(.vertical, 4)
                         .background(RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(selection == index ? Color.primary.opacity(0.14) : Color.clear))
+                            .fill(selection == index ? Theme.accent : Color.clear))
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -183,10 +210,8 @@ struct WideButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            Text(title).font(.system(size: 12, weight: .medium)).frame(maxWidth: .infinity)
-        }
-        .controlSize(.small)
+        Button(action: action) { Text(title).frame(maxWidth: .infinity) }
+            .buttonStyle(PanelButtonStyle())
     }
 }
 
@@ -343,7 +368,7 @@ struct ImageToolView: View {
                 }
             } footer: {
                 if page == 1 {
-                    HStack { Spacer(); Button("关闭", action: close).keyboardShortcut(.cancelAction) }
+                    HStack { Spacer(); Button("关闭", action: close).keyboardShortcut(.cancelAction).buttonStyle(PanelButtonStyle()) }
                 } else {
                 HStack(spacing: 8) {
                     Button("重置") {
@@ -354,9 +379,9 @@ struct ImageToolView: View {
                     .buttonStyle(.plain).foregroundStyle(.secondary).font(.system(size: 12))
                     .opacity(isBatch ? 0 : 1)
                     Spacer(minLength: 4)
-                    Button("取消", action: close).keyboardShortcut(.cancelAction)
+                    Button("取消", action: close).keyboardShortcut(.cancelAction).buttonStyle(PanelButtonStyle())
                     Button("保存", action: save).keyboardShortcut(.defaultAction)
-                        .buttonStyle(.borderedProminent).disabled(session == nil)
+                        .buttonStyle(PanelButtonStyle(prominent: true)).disabled(session == nil)
                 }
                 }
             }
@@ -869,7 +894,7 @@ struct VideoToolView: View {
             } footer: {
                 HStack {
                     Spacer()
-                    Button("关闭", action: close).keyboardShortcut(.cancelAction)
+                    Button("关闭", action: close).keyboardShortcut(.cancelAction).buttonStyle(PanelButtonStyle())
                 }
             }
         }
@@ -964,7 +989,7 @@ struct AudioToolView: View {
             } footer: {
                 HStack {
                     Spacer()
-                    Button("关闭", action: close).keyboardShortcut(.cancelAction)
+                    Button("关闭", action: close).keyboardShortcut(.cancelAction).buttonStyle(PanelButtonStyle())
                 }
             }
             .disabled(isBatch)
