@@ -7,7 +7,7 @@ struct HomeActions {
     var requestNotifications: () -> Void
     var requestAccessibility: () -> Void
     var setShiftFilter: (Bool) -> Void
-    var revealResult: () -> Void
+    var close: () -> Void
     var quit: () -> Void
 }
 
@@ -28,7 +28,7 @@ struct HomeView: View {
                 runningPill
                 PanelSection(caption: "开机自启") { launchAtLogin }
                 PanelSection(caption: "怎么用") { usage }
-                PanelSection(caption: "授权") { permissions }
+                PanelSection(caption: "授权（均为可选）") { permissions }
                 footer
             }
             .padding(.horizontal, 28)
@@ -58,7 +58,7 @@ struct HomeView: View {
     private var runningPill: some View {
         HStack(spacing: 8) {
             Circle().fill(status.isConverting ? Theme.accent : Color.green).frame(width: 8, height: 8)
-            Text(status.isConverting ? "正在处理文件…" : "已启动，正在后台等待你拖动文件")
+            Text(status.isConverting ? "处理中…" : "已启动")
                 .font(.system(size: 12, weight: .medium))
             Spacer(minLength: 0)
         }
@@ -86,8 +86,6 @@ struct HomeView: View {
                 }
             } else if let error = status.loginError {
                 Text(error).font(.system(size: 11)).foregroundStyle(.red)
-            } else {
-                Text("自启后在后台安静运行，不会弹出这个窗口。").font(.system(size: 11)).foregroundStyle(.secondary)
             }
         }
     }
@@ -95,15 +93,9 @@ struct HomeView: View {
     // MARK: How to use
 
     private var usage: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ListGroup {
-                step(1, "按住 Shift，拖动图片、视频、音频、PDF 或文档")
-                step(2, "光标处出现轮盘，拖到想要的格式上松手")
-                step(3, "拖到正左边的扳手，打开编辑窗口：裁切、剪切、压缩……")
-                step(4, "一次拖多个文件，轮盘会多出“合并”或“拼接”", last: true)
-            }
-            Text("也可以在访达里右键文件 → 快速操作 → 用轻與转换…")
-                .font(.system(size: 11)).foregroundStyle(.secondary)
+        ListGroup {
+            step(1, "按住 Shift，拖动图片、视频、音频、PDF 或文档")
+            step(2, "一次拖多个文件，轮盘会多出“合并”或“拼接”", last: true)
         }
     }
 
@@ -124,33 +116,39 @@ struct HomeView: View {
     // MARK: Permissions
 
     private var permissions: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ListGroup {
-                permissionRow(symbol: "bell", title: "通知", detail: "转换完成时提醒你，点一下就能看到结果") {
-                    switch status.notifications {
-                    case .allowed: granted
-                    case .notAsked: Button("允许", action: actions.requestNotifications).buttonStyle(PanelButtonStyle())
-                    case .denied: Button("打开设置") { AppStatus.openNotificationSettings() }.buttonStyle(PanelButtonStyle())
-                    case .unavailable: Text("不可用").font(.system(size: 11)).foregroundStyle(.secondary)
-                    }
-                }
-                permissionRow(symbol: "hand.raised", title: "辅助功能（可选）",
-                              detail: "只用于让“已选中的文件”也能按 Shift 拖动", last: !status.accessibilityTrusted) {
-                    if status.accessibilityTrusted { granted }
-                    else { Button("授权", action: actions.requestAccessibility).buttonStyle(PanelButtonStyle()) }
-                }
-                if status.accessibilityTrusted {
-                    HStack {
-                        Text("已选中文件时，按 Shift 不取消选中").font(.system(size: 12))
-                        Spacer()
-                        Toggle("", isOn: Binding(get: { status.shiftFilterOn }, set: actions.setShiftFilter))
-                            .toggleStyle(.switch).labelsHidden().controlSize(.small)
-                    }
-                    .padding(.horizontal, 12).padding(.vertical, 9)
-                }
+        ListGroup {
+            switchRow(symbol: "bell", title: "转换完成时通知",
+                      isOn: Binding(get: { status.notifications == .allowed },
+                                    set: { on in
+                                        // macOS lets an app ask once; turning it off, or turning on after a "no",
+                                        // is done in System Settings.
+                                        if on && status.notifications == .notAsked { actions.requestNotifications() }
+                                        else { AppStatus.openNotificationSettings() }
+                                    }),
+                      enabled: status.notifications != .unavailable, last: false)
+            permissionRow(symbol: "hand.raised", title: "辅助功能", detail: "让已选中的文件也能按 Shift 拖动",
+                          last: !status.accessibilityTrusted) {
+                if status.accessibilityTrusted { granted }
+                else { Button("授权", action: actions.requestAccessibility).buttonStyle(PanelButtonStyle()) }
             }
-            Text("拖动触发本身不需要任何权限，不授权也能正常使用。")
-                .font(.system(size: 11)).foregroundStyle(.secondary)
+            if status.accessibilityTrusted {
+                switchRow(symbol: "cursorarrow.click", title: "按 Shift 时不取消选中",
+                          isOn: Binding(get: { status.shiftFilterOn }, set: actions.setShiftFilter),
+                          enabled: true, last: true)
+            }
+        }
+    }
+
+    private func switchRow(symbol: String, title: String, isOn: Binding<Bool>, enabled: Bool, last: Bool) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: symbol).font(.system(size: 13)).foregroundStyle(Theme.accent).frame(width: 20)
+            Text(title).font(.system(size: 12, weight: .medium))
+            Spacer(minLength: 8)
+            Toggle("", isOn: isOn).toggleStyle(.switch).labelsHidden().controlSize(.small).disabled(!enabled)
+        }
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .overlay(alignment: .bottom) {
+            if !last { Rectangle().fill(Color.primary.opacity(0.08)).frame(height: 0.5).padding(.leading, 42) }
         }
     }
 
@@ -187,11 +185,9 @@ struct HomeView: View {
     // MARK: Footer
 
     private var footer: some View {
-        HStack {
-            if status.resultURL != nil {
-                Button("在访达中显示最近结果", action: actions.revealResult).buttonStyle(PanelButtonStyle())
-            }
+        HStack(spacing: 10) {
             Spacer()
+            Button("关闭", action: actions.close).buttonStyle(PanelButtonStyle()).keyboardShortcut(.cancelAction)
             Button("退出", action: actions.quit).buttonStyle(PanelButtonStyle())
         }
     }

@@ -82,9 +82,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 AppStatus.openAccessibilitySettings()
             },
             setShiftFilter: { [weak self] on in self?.setShiftFilter(on) },
-            revealResult: { [weak self] in
-                if let url = self?.model.resultURL { NSWorkspace.shared.activateFileViewerSelecting([url]) }
-            },
+            close: { [weak self] in self?.mainWindow?.close() },
             quit: { NSApp.terminate(nil) }))
         mainWindow = window
         // Started by "open at login": stay quiet in the background, no window.
