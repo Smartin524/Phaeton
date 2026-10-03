@@ -53,10 +53,12 @@ Afterwards:
 | Image (incl. SVG) | PNG / JPEG / WebP\* / HEIC / PDF / TXT (text recognition) |
 | Video | M4A / WAV / AIFF (audio), MP3\*, MP4 / MOV |
 | Audio | M4A / WAV / AIFF / MP3\* |
-| PDF | PNG / JPEG, TXT (OCR when there is no text layer), DOCX\* |
-| TXT / RTF / DOC / DOCX / ODT | TXT / RTF / DOCX / PDF |
+| PDF | PNG / JPEG, TXT / MD (OCR when there is no text layer), DOCX\* |
+| TXT / MD / RTF / DOC / DOCX / ODT | TXT / MD / RTF / DOCX / PDF |
 
 \* needs the [optional components](#optional-components). Several files at once add a sector: **merge PDF** (images or PDFs), **join** (video or audio).
+
+**To MD** (handy for pasting into an AI): headings, bold / italic, links, nested lists and tables are kept. DOCX is read from the Word file's own structure; for PDF, headings are inferred from type size, broken lines are joined into paragraphs, and running headers, footers and page numbers are dropped. The other way round, MD → PDF / DOCX / RTF is typeset as Markdown instead of printing the raw `#` and `**`.
 
 **The wrench window**
 
@@ -97,5 +99,6 @@ Signing: with the "Phaeton Local Signing" certificate, the Accessibility grant s
 - Detection relies on macOS delivering mouse events to a background app; if it does not, the wheel will not appear. Use the right-click entry.
 - Not supported: MKV / WebM / AVI input, FLAC / OGG output, Office → PDF other than Word.
 - PDF → DOCX does not guarantee complex layouts; scanned PDFs are not OCR'd.
+- PDF → MD infers structure: tables in a PDF become lines of text, and pages that wrap text around pictures may split paragraphs.
 
 MIT licensed, see [LICENSE](LICENSE).

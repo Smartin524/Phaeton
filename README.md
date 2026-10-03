@@ -53,10 +53,12 @@ curl -fsSL https://raw.githubusercontent.com/Smartin524/Phaeton/main/scripts/ins
 | 图片（含 SVG） | PNG / JPEG / WebP\* / HEIC / PDF / TXT（识别文字） |
 | 视频 | M4A / WAV / AIFF（提取音频）、MP3\*、MP4 / MOV |
 | 音频 | M4A / WAV / AIFF / MP3\* |
-| PDF | PNG / JPEG、TXT（无文字层时 OCR）、DOCX\* |
-| TXT / RTF / DOC / DOCX / ODT | TXT / RTF / DOCX / PDF |
+| PDF | PNG / JPEG、TXT / MD（无文字层时 OCR）、DOCX\* |
+| TXT / MD / RTF / DOC / DOCX / ODT | TXT / MD / RTF / DOCX / PDF |
 
 \* 需要[可选组件](#可选组件)。一次拖多个文件时多一格：**合并 PDF**（图片或 PDF）、**拼接**（视频或音频）。
+
+**转 MD**（方便贴给 AI）：保留标题、粗体 / 斜体、链接、多级列表和表格。DOCX 直接读 Word 文件结构；PDF 按字号推断标题，把断行合并成段落，去掉页眉页脚和页码。反过来，MD 转 PDF / DOCX / RTF 时会按 Markdown 排版，而不是原样印出 `#` 和 `**`。
 
 **扳手窗口**
 
@@ -97,5 +99,6 @@ bash scripts/make-release.sh  # 打包 Release zip
 - 拖拽监听依赖 macOS 向后台应用传递鼠标事件；收不到时轮盘不出现，可用右键入口。
 - 不支持 MKV / WebM / AVI 输入、FLAC / OGG 输出、Word 以外的 Office 转 PDF。
 - PDF→DOCX 不保证复杂排版，扫描件不做文字识别。
+- PDF→MD 是推断出来的结构：PDF 里的表格会变成逐行文字，图文混排的页面段落可能被切碎。
 
 MIT 许可，见 [LICENSE](LICENSE)。

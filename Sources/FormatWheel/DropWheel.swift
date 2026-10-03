@@ -10,6 +10,7 @@ extension OutputFormat {
         case .m4a, .wav, .aiff, .mp3: return "waveform"
         case .mp4, .mov: return "film"
         case .txt: return "text.alignleft"
+        case .md: return "number"
         case .rtf, .docx: return "doc.text"
         }
     }

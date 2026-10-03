@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 public enum OutputFormat: String, CaseIterable, Identifiable, Sendable {
     case png, jpeg, webp, heic, pdf   // images, documents
     case m4a, wav, aiff, mp3, mp4, mov                // audio and video
-    case txt, rtf, docx          // documents
+    case txt, md, rtf, docx      // documents
 
     public var id: String { rawValue }
     public var title: String { rawValue.uppercased() }
@@ -15,7 +15,7 @@ public enum OutputFormat: String, CaseIterable, Identifiable, Sendable {
 public enum FileKind: String, Sendable {
     case image, audio, video, document
 
-    private static let textExtensions: Set<String> = ["txt", "text", "md", "rtf", "rtfd", "doc", "docx", "odt"]
+    private static let textExtensions: Set<String> = ["txt", "text", "md", "markdown", "rtf", "rtfd", "doc", "docx", "odt"]
 
     public init?(_ url: URL) {
         let ext = url.pathExtension.lowercased()
@@ -45,14 +45,14 @@ public enum FileKind: String, Sendable {
         case .video: all = [.m4a, .wav, .aiff, .mp3, .mp4, .mov]
         case .document:
             // Offer only what every selected file can become: PDFs and text documents
-            // share TXT and DOCX (PDF → DOCX needs the optional components, offered on first use).
+            // share TXT, MD and DOCX (PDF → DOCX needs the optional components, offered on first use).
             let pdfs = urls.filter { $0.pathExtension.lowercased() == "pdf" }.count
             if pdfs == urls.count {
-                all = [.png, .jpeg, .txt, .docx]
+                all = [.png, .jpeg, .txt, .md, .docx]
             } else if pdfs == 0 {
-                all = [.txt, .rtf, .docx, .pdf]
+                all = [.txt, .md, .rtf, .docx, .pdf]
             } else {
-                all = [.txt, .docx]
+                all = [.txt, .md, .docx]
             }
         }
         return all.filter { format in
@@ -66,6 +66,7 @@ public enum FileKind: String, Sendable {
         case "aif": return "aiff"
         case "heif": return "heic"
         case "text": return "txt"
+        case "markdown": return "md"
         case let other: return other
         }
     }

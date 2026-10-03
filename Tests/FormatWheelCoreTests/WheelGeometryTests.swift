@@ -52,7 +52,11 @@ final class WheelGeometryTests: XCTestCase {
         XCTAssertEqual(FileKind(URL(fileURLWithPath: "/tmp/a.pdf")), .document)
         XCTAssertNil(FileKind(URL(fileURLWithPath: "/tmp/a.zip")))
         XCTAssertEqual(FileKind.image.outputs(for: [png]), [.jpeg, .webp, .heic, .pdf, .txt])
-        XCTAssertEqual(FileKind.document.outputs(for: [URL(fileURLWithPath: "/tmp/a.pdf")]), [.png, .jpeg, .txt, .docx])
+        XCTAssertEqual(FileKind.document.outputs(for: [URL(fileURLWithPath: "/tmp/a.pdf")]), [.png, .jpeg, .txt, .md, .docx])
+        // Markdown in, Markdown out is not offered; mixed PDF + text selections share TXT, MD and DOCX.
+        XCTAssertEqual(FileKind.document.outputs(for: [URL(fileURLWithPath: "/tmp/a.md")]), [.txt, .rtf, .docx, .pdf])
+        XCTAssertEqual(FileKind.document.outputs(for: [URL(fileURLWithPath: "/tmp/a.pdf"), URL(fileURLWithPath: "/tmp/b.rtf")]),
+                       [.txt, .md, .docx])
         XCTAssertEqual(OutputFormat.jpeg.fileExtension, "jpg")
         // Several files at once offer one combined action.
         let pdf = URL(fileURLWithPath: "/tmp/a.pdf")

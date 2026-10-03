@@ -28,14 +28,15 @@ import UniformTypeIdentifiers
         check(ocr.contains("你好") || ocr.contains("扫描"), "OCR chinese")
         check(ocr.contains("128"), "OCR digits")
 
-        // 2. Complex document: heading, table and list -> docx -> pdf -> docx.
+        // 2. Complex document: heading, table and list -> rtf -> pdf -> docx. (RTF, because textutil
+        //    keeps the table structure there; its own DOCX writer flattens tables into paragraphs.)
         let html = "<html><body><h1>Quarterly Report</h1><p>Hello <b>bold</b> text.</p><table border=1><tr><th>Item</th><th>Qty</th></tr><tr><td>Apples</td><td>12</td></tr><tr><td>Pears</td><td>7</td></tr></table><ul><li>First point</li><li>Second point</li></ul></body></html>"
         let htmlURL = dir.appendingPathComponent("report.html")
         try html.write(to: htmlURL, atomically: true, encoding: .utf8)
         let p = Process(); p.executableURL = URL(fileURLWithPath: "/usr/bin/textutil")
-        p.arguments = ["-convert", "docx", htmlURL.path]; try p.run(); p.waitUntilExit()
-        let docx = dir.appendingPathComponent("report.docx")
-        let pdf = try await svc.convert(source: docx, to: .pdf)
+        p.arguments = ["-convert", "rtf", htmlURL.path]; try p.run(); p.waitUntilExit()
+        let rtf = dir.appendingPathComponent("report.rtf")
+        let pdf = try await svc.convert(source: rtf, to: .pdf)
         let back = try await svc.convert(source: pdf, to: .docx)
         let unzip = Process(); unzip.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
         let pipe = Pipe(); unzip.standardOutput = pipe
