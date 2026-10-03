@@ -31,6 +31,7 @@ if ! xcrun actool Resources/AppIcon.icon --compile "$APP/Contents/Resources" --a
   cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 fi
 cp scripts/install-extras.sh scripts/phaeton_helper.py "$APP/Contents/Resources/"
+cp -R Resources/zh-Hans.lproj "$APP/Contents/Resources/"
 chmod +x "$APP/Contents/MacOS/FormatWheel"
 plutil -lint "$APP/Contents/Info.plist"
 echo "Built: $(pwd)/$APP"

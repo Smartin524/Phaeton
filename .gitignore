@@ -6,3 +6,6 @@ dist/
 
 validation/smoke
 validation/fixtures*/
+
+# your own test files, kept out of the repository
+samples/

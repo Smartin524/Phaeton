@@ -1,6 +1,6 @@
 <p align="center"><img src="Resources/AppIcon-1024.png" width="128" alt="Phaeton"></p>
 
-# Phaeton
+# Phaeton (轻與)
 
 [中文](README.md)
 
@@ -35,7 +35,7 @@ The last sector of the wheel for images, video, audio and PDFs is a **wrench**: 
 
 ## Other entry points and details
 
-- **Finder right-click:** Quick Actions / Services ▸ "用 Phaeton 转换…". If missing, enable it in System Settings ▸ Keyboard ▸ Keyboard Shortcuts ▸ Services.
+- **Finder right-click:** Quick Actions / Services ▸ "Convert with Phaeton…". If missing, enable it in System Settings ▸ Keyboard ▸ Keyboard Shortcuts ▸ Services.
 - **Menu bar:** just one settings switch and Quit; everything else is dragging, right-click and notifications.
 - **Progress and notifications:** after the drop the wheel turns into a progress ring where it was, and **clicking the ring cancels**; a system notification when done (asks permission once) reveals the result when clicked.
 - **Shift on a selected file deselects it** (that is Finder's own behavior): start the drag first, then press Shift; or enable "Shift does not deselect selected files" in the menu (needs Accessibility, off by default).
@@ -60,7 +60,7 @@ They carry their own licenses (GPL / AGPL / LGPL); see [THIRD-PARTY.md](THIRD-PA
 ## Validation
 
 - `swift test`: 22 unit tests (image-conversion safety and pixel details, wheel geometry, file-kind and format rules); needs full Xcode.
-- `bash scripts/validate.sh`: end-to-end checks of the conversion engine against `samples/` (images, audio/video, documents, merge and join, OCR, trim, cancel…). Checks that need the optional components are skipped when they are not installed.
+- `bash scripts/validate.sh`: end-to-end checks of the conversion engine, with sample files generated on the spot (images, audio/video, documents, merge and join, OCR, trim, cancel…). Checks that need the optional components are skipped when they are not installed.
 
 Both test the engine, not the UI; the interface and drag feel have no automated tests.
 
@@ -78,7 +78,6 @@ Sources/FormatWheel/      menu bar, drag monitor, wheel, editor windows, progres
 Sources/FormatWheelCore/  file kinds and formats, wheel geometry, image / media / document engines
 scripts/                  build, icon, optional-components installer, validation
 validation/               standalone engine checks
-samples/                  hand-made sample files
 ```
 
 The internal target is still named `FormatWheel`.

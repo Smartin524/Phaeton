@@ -1,2 +1,0 @@
-你好，这是 Phaeton 的文档转换测试。
-Hello world.

@@ -16,6 +16,11 @@
 	<string>local.phaeton.Phaeton</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>zh-Hans</string>
+	</array>
 	<key>CFBundleName</key>
 	<string>Phaeton</string>
 	<key>CFBundlePackageType</key>
@@ -38,7 +43,7 @@
 			<key>NSMenuItem</key>
 			<dict>
 				<key>default</key>
-				<string>用 Phaeton 转换…</string>
+				<string>Convert with Phaeton…</string>
 			</dict>
 			<key>NSMessage</key>
 			<string>convertFiles</string>

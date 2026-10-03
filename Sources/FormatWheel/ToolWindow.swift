@@ -767,8 +767,8 @@ private struct Timeline: View {
                 // rails along the kept part
                 Rectangle().fill(Theme.accent).frame(width: max(0, ex - sx), height: rail).offset(x: sx)
                 Rectangle().fill(Theme.accent).frame(width: max(0, ex - sx), height: rail).offset(x: sx, y: height - rail)
-                grip(systemName: "chevron.compact.left", height: height).offset(x: sx - 14)
-                grip(systemName: "chevron.compact.right", height: height).offset(x: ex)
+                grip(systemName: "chevron.compact.left", height: height, left: true).offset(x: sx - 14)
+                grip(systemName: "chevron.compact.right", height: height, left: false).offset(x: ex)
                 // playhead
                 Capsule().fill(Color.white).frame(width: 3, height: height + 6)
                     .shadow(color: .black.opacity(0.35), radius: 1.5)
@@ -796,11 +796,14 @@ private struct Timeline: View {
         }
     }
 
-    /// A rounded handle just outside the kept part, with a chevron pointing at it.
-    private func grip(systemName: String, height: CGFloat) -> some View {
-        RoundedRectangle(cornerRadius: 5, style: .continuous).fill(Theme.accent)
+    /// A handle joined to the rails: round on the outside, square on the inside, so handle and
+    /// rails read as one frame. (A 20 pt rounded rectangle cut to 14 pt hides the inner corners.)
+    private func grip(systemName: String, height: CGFloat, left: Bool) -> some View {
+        RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Theme.accent)
+            .frame(width: 20, height: height)
+            .frame(width: 14, height: height, alignment: left ? .leading : .trailing)
+            .clipped()
             .overlay(Image(systemName: systemName).font(.system(size: 12, weight: .bold)).foregroundStyle(.white))
-            .frame(width: 14, height: height)
     }
 }
 
