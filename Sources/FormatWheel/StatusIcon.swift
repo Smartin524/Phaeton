@@ -1,42 +1,28 @@
 import AppKit
 
-/// The menu-bar icon: a small carriage wheel echoing the app icon. It is drawn as a vector
-/// template image, so the system tints it for light and dark menu bars and any size stays sharp.
+/// The menu-bar icon: a plain carriage wheel (one rim, a few spokes, a hub) that echoes the app
+/// icon. It is a vector template image, so the system tints it for light and dark menu bars.
 enum StatusIcon {
-    static func make(size: CGFloat = 18) -> NSImage {
+    static func make(size: CGFloat = 18, spokes: Int = 8) -> NSImage {
         let image = NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in
             let s = rect.width / 18                      // design grid: 18 × 18 points
             let c = CGPoint(x: rect.midX, y: rect.midY)
             NSColor.black.setStroke()
             NSColor.black.setFill()
 
-            func ring(_ radius: CGFloat, _ width: CGFloat) {
-                let path = NSBezierPath(ovalIn: CGRect(x: c.x - radius * s, y: c.y - radius * s,
-                                                       width: radius * 2 * s, height: radius * 2 * s))
-                path.lineWidth = width * s
-                path.stroke()
-            }
-            ring(8.2, 1.5)      // the rim
-            ring(6.9, 0.6)      // the groove inside it
+            let rim = NSBezierPath(ovalIn: CGRect(x: c.x - 7.9 * s, y: c.y - 7.9 * s, width: 15.8 * s, height: 15.8 * s))
+            rim.lineWidth = 1.7 * s
+            rim.stroke()
 
-            // Eight slightly bowed spokes from the hub to the groove.
-            for i in 0..<8 {
-                let angle = CGFloat(i) * .pi / 4 + .pi / 8
-                let along = CGPoint(x: cos(angle), y: sin(angle))
-                let across = CGPoint(x: -sin(angle), y: cos(angle))
-                func point(_ radius: CGFloat, _ bow: CGFloat) -> CGPoint {
-                    CGPoint(x: c.x + (along.x * radius + across.x * bow) * s, y: c.y + (along.y * radius + across.y * bow) * s)
-                }
+            for i in 0..<spokes {
+                let angle = CGFloat(i) * 2 * .pi / CGFloat(spokes) + .pi / 2
                 let spoke = NSBezierPath()
-                spoke.move(to: point(3.3, 0))
-                spoke.curve(to: point(6.9, 0), controlPoint1: point(4.6, 0.45), controlPoint2: point(5.6, -0.45))
+                spoke.move(to: CGPoint(x: c.x + cos(angle) * 2.2 * s, y: c.y + sin(angle) * 2.2 * s))
+                spoke.line(to: CGPoint(x: c.x + cos(angle) * 7.4 * s, y: c.y + sin(angle) * 7.4 * s))
                 spoke.lineWidth = 1.15 * s
-                spoke.lineCapStyle = .butt
                 spoke.stroke()
             }
-
-            ring(3.4, 0.9)      // the hub
-            NSBezierPath(ovalIn: CGRect(x: c.x - 1.35 * s, y: c.y - 1.35 * s, width: 2.7 * s, height: 2.7 * s)).fill()
+            NSBezierPath(ovalIn: CGRect(x: c.x - 2.0 * s, y: c.y - 2.0 * s, width: 4.0 * s, height: 4.0 * s)).fill()
             return true
         }
         image.isTemplate = true
