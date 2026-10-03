@@ -152,6 +152,31 @@ struct Section<Content: View>: View {
     }
 }
 
+/// A small two-or-more way switch: quiet grey track, the chosen item on a lighter pill.
+struct Tabs: View {
+    let titles: [String]
+    @Binding var selection: Int
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(Array(titles.enumerated()), id: \.offset) { index, title in
+                Button { selection = index } label: {
+                    Text(title)
+                        .font(.system(size: 12, weight: selection == index ? .semibold : .regular))
+                        .foregroundStyle(selection == index ? Color.primary : Color.secondary)
+                        .frame(maxWidth: .infinity).padding(.vertical, 4)
+                        .background(RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(selection == index ? Color.primary.opacity(0.14) : Color.clear))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(2)
+        .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.primary.opacity(0.07)))
+    }
+}
+
 /// A compact push button that fills the panel's width.
 struct WideButton: View {
     let title: String
@@ -278,11 +303,7 @@ struct ImageToolView: View {
         HStack(spacing: 0) {
             canvas.padding(.top, 12).padding(.horizontal, 12).padding(.bottom, 12)
             SidePanel {
-                Picker("", selection: $page) {
-                    Text("裁切").tag(0)
-                    Text("更多").tag(1)
-                }
-                .pickerStyle(.segmented).labelsHidden()
+                Tabs(titles: ["裁切", "更多"], selection: $page)
                 if page == 1 {
                     ImageMoreTools(urls: urls, perform: perform, close: close)
                 } else {
@@ -818,16 +839,12 @@ struct VideoToolView: View {
             .padding(.top, 12).padding(.horizontal, 12).padding(.bottom, 12)
             SidePanel {
                 if !isBatch {
-                    Picker("", selection: $page) {
-                        Text("剪辑").tag(0)
-                        Text("更多").tag(1)
-                    }
-                    .pickerStyle(.segmented).labelsHidden()
+                    Tabs(titles: ["剪辑", "更多"], selection: $page)
                 }
                 if page == 1 || isBatch {
                     VideoMoreTools(urls: urls, perform: perform, close: close)
                 } else {
-                    Section(caption: "片段 · 快速剪切，不重新编码") {
+                    Section(caption: "片段") {
                         HStack {
                             Text(clock(model.start)).font(.system(size: 12).monospacedDigit())
                             Text("→").foregroundStyle(.secondary)
@@ -920,7 +937,7 @@ struct AudioToolView: View {
             }
             .padding(.horizontal, 12).padding(.vertical, 12)
             SidePanel {
-                Section(caption: fadeIn || fadeOut ? "片段 · 有淡入淡出，将重新编码为 M4A" : "片段 · 快速剪切，不重新编码") {
+                Section(caption: "片段") {
                     HStack {
                         Text(clock(model.start)).font(.system(size: 12).monospacedDigit())
                         Text("→").foregroundStyle(.secondary)
