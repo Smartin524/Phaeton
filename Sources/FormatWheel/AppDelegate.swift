@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import FormatWheelCore
 
 @MainActor
@@ -13,28 +14,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hudShown = false
     private var installing = false
     private let shiftFilter = ShiftFilter()
-    private var filterItem: NSMenuItem?
     private let filterKey = "StripShiftOnSelected"
-    private var statusItem: NSStatusItem?
+    private let status = AppStatus()
+    private var mainWindow: MainWindow?
     private var pendingFiles: [URL] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
-        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        item.autosaveName = "Phaeton"
-        let icon = StatusIcon.make()
-        item.button?.image = icon
-        // Deliberately tiny: everything else happens by dragging, from Finder's right-click menu,
-        // or by clicking the progress ring.
-        let menu = NSMenu()
-        menu.autoenablesItems = false
-        let filter = menu.addItem(withTitle: "已选中文件时 Shift 不取消选中", action: #selector(toggleShiftFilter), keyEquivalent: "")
-        filter.target = self
-        filterItem = filter
-        menu.addItem(.separator())
-        menu.addItem(withTitle: "退出 Phaeton", action: #selector(quit), keyEquivalent: "q").target = self
-        item.menu = menu
-        statusItem = item
+        // An ordinary app: a Dock icon and a menu bar, so it can always be found and quit. It keeps
+        // listening for drags after its window is closed.
+        NSApp.setActivationPolicy(.regular)
+        installMenus()
 
         wheel.onDrop = { [weak self] urls, format, center in
             self?.hudCenter = center
@@ -69,56 +58,105 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.hudCenter = nil
             self?.notifier.post(message: message, revealing: url, success: success)
         }
-        if UserDefaults.standard.bool(forKey: filterKey) { filterItem?.state = shiftFilter.start() ? .on : .off }
+        if UserDefaults.standard.bool(forKey: filterKey), AXIsProcessTrusted() { status.shiftFilterOn = shiftFilter.start() }
         model.onNeedExtras = { [weak self] sources, label, work in self?.offerExtras(sources, label, work) }
         model.onCancel = { [weak self] in
             self?.hud.dismiss()
             self?.hudShown = false
             self?.hudCenter = nil
         }
-        installHiddenMenus()
         NSApp.servicesProvider = self
         NSUpdateDynamicServices()
         monitor.start()
         refresh()
+
+        let window = MainWindow(status: status, actions: HomeActions(
+            requestNotifications: { [weak self] in
+                Task { @MainActor in
+                    await AppStatus.requestNotifications()
+                    self?.status.refresh()
+                }
+            },
+            requestAccessibility: {
+                _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
+                AppStatus.openAccessibilitySettings()
+            },
+            setShiftFilter: { [weak self] on in self?.setShiftFilter(on) },
+            revealResult: { [weak self] in
+                if let url = self?.model.resultURL { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+            },
+            quit: { NSApp.terminate(nil) }))
+        mainWindow = window
+        // Started by "open at login": stay quiet in the background, no window.
+        if !launchedAsLoginItem { window.show() }
     }
 
-    /// The app has no menu bar of its own, so text fields in the editor windows would not answer
-    /// ⌘C / ⌘V / ⌘A / ⌘Z and ⌘W would do nothing. An unseen main menu fixes both: key equivalents
-    /// work while a window is active even though the menu bar never shows.
-    private func installHiddenMenus() {
+    /// True when macOS started the app because it is a login item.
+    private var launchedAsLoginItem: Bool {
+        func code(_ text: String) -> UInt32 { text.utf8.reduce(0) { ($0 << 8) | UInt32($1) } }
+        guard let event = NSAppleEventManager.shared().currentAppleEvent else { return false }
+        return event.paramDescriptor(forKeyword: AEKeyword(code("prdt")))?.enumCodeValue == OSType(code("lgit"))
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+
+    /// Clicking the Dock icon brings the window back.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        mainWindow?.show()
+        return true
+    }
+
+    @objc private func showMainWindow() { mainWindow?.show() }
+
+    /// The menu bar: the app menu, Edit (so text fields answer ⌘C / ⌘V / ⌘A / ⌘Z) and Window (⌘W).
+    private func installMenus() {
+        let name = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Phaeton"
         let main = NSMenu()
         func attach(_ submenu: NSMenu) {
             let item = NSMenuItem()
             item.submenu = submenu
             main.addItem(item)
         }
-        attach(NSMenu())                                       // the application menu, left empty
+        let app = NSMenu()
+        app.addItem(withTitle: "关于\(name)", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        app.addItem(.separator())
+        app.addItem(withTitle: "隐藏\(name)", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        app.addItem(.separator())
+        app.addItem(withTitle: "退出\(name)", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        attach(app)
 
-        let edit = NSMenu(title: "Edit")
+        let edit = NSMenu(title: "编辑")
         func add(_ title: String, _ action: Selector, _ key: String, shift: Bool = false) {
             let item = edit.addItem(withTitle: title, action: action, keyEquivalent: key)
             if shift { item.keyEquivalentModifierMask = [.command, .shift] }
         }
-        add("Undo", Selector(("undo:")), "z")
-        add("Redo", Selector(("redo:")), "z", shift: true)
+        add("撤销", Selector(("undo:")), "z")
+        add("重做", Selector(("redo:")), "z", shift: true)
         edit.addItem(.separator())
-        add("Cut", #selector(NSText.cut(_:)), "x")
-        add("Copy", #selector(NSText.copy(_:)), "c")
-        add("Paste", #selector(NSText.paste(_:)), "v")
-        add("Select All", #selector(NSText.selectAll(_:)), "a")
+        add("剪切", #selector(NSText.cut(_:)), "x")
+        add("拷贝", #selector(NSText.copy(_:)), "c")
+        add("粘贴", #selector(NSText.paste(_:)), "v")
+        add("全选", #selector(NSText.selectAll(_:)), "a")
         attach(edit)
 
-        let window = NSMenu(title: "Window")
-        window.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
-        window.addItem(withTitle: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
+        let window = NSMenu(title: "窗口")
+        window.addItem(withTitle: "关闭", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        window.addItem(withTitle: "最小化", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
+        window.addItem(.separator())
+        window.addItem(withTitle: "显示\(name)主窗口", action: #selector(showMainWindow), keyEquivalent: "0").target = self
         attach(window)
         NSApp.mainMenu = main
         NSApp.windowsMenu = window
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        model.isConverting ? .terminateCancel : .terminateNow
+        guard model.isConverting else { return .terminateNow }
+        let alert = NSAlert()
+        alert.messageText = "还有任务正在进行"
+        alert.informativeText = "现在退出会中断它，未完成的文件可能残留。"
+        alert.addButton(withTitle: "继续等待")
+        alert.addButton(withTitle: "仍然退出")
+        return alert.runModal() == .alertSecondButtonReturn ? .terminateNow : .terminateCancel
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -135,32 +173,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             hud.update(progress: model.progress)
         }
-        statusItem?.button?.toolTip = model.message
-        if let progress = model.progress {
-            statusItem?.button?.title = " \(Int(progress * 100))%"
-        } else {
-            statusItem?.button?.title = model.isConverting ? " …" : ""
-        }
+        status.isConverting = model.isConverting
+        status.message = model.message
+        status.resultURL = model.resultURL
     }
 
-    /// Needs Accessibility permission. If it is missing the system asks; the switch stays off
-    /// until the permission exists and the item is chosen again.
-    @objc private func toggleShiftFilter() {
-        if shiftFilter.isRunning {
-            shiftFilter.stop()
-            UserDefaults.standard.set(false, forKey: filterKey)
-            filterItem?.state = .off
-        } else if shiftFilter.start() {
-            UserDefaults.standard.set(true, forKey: filterKey)
-            filterItem?.state = .on
+    /// The "Shift does not deselect selected files" option (needs Accessibility, which the window asks for).
+    private func setShiftFilter(_ on: Bool) {
+        if on {
+            let started = shiftFilter.start()
+            status.shiftFilterOn = started
+            UserDefaults.standard.set(started, forKey: filterKey)
         } else {
+            shiftFilter.stop()
+            status.shiftFilterOn = false
             UserDefaults.standard.set(false, forKey: filterKey)
-            filterItem?.state = .off
-            let alert = NSAlert()
-            alert.messageText = "需要辅助功能权限"
-            alert.informativeText = "请在“系统设置 → 隐私与安全性 → 辅助功能”里允许 Phaeton，然后再次选择此项。Phaeton 只在你对访达里已选中的文件按住 Shift 点击时，去掉那一次点击的 Shift 标记。"
-            NSApp.activate(ignoringOtherApps: true)
-            alert.runModal()
         }
     }
 
@@ -176,7 +203,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         installing = true
         hud.begin(at: hudCenter ?? NSEvent.mouseLocation)
         hud.update(progress: nil)
-        statusItem?.button?.toolTip = "正在安装可选组件…"
         Task { @MainActor in
             let failure = await ExtrasInstaller.install()
             installing = false
@@ -225,10 +251,5 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let raw = sender.representedObject as? String, let format = OutputFormat(rawValue: raw) else { return }
         model.convert(pendingFiles, to: format)
         pendingFiles = []
-    }
-
-    @objc private func quit() {
-        guard !model.isConverting else { NSSound.beep(); return }
-        NSApp.terminate(nil)
     }
 }

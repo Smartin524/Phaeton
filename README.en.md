@@ -4,7 +4,7 @@
 
 [中文](README.md)
 
-A lightweight macOS menu-bar file converter: **hold Shift, drag a file, and a wheel appears at the pointer. Drop on the format you want.** The result is saved next to the original, which is never touched. Inspired by the weapon wheel in GTA V and the ping wheel in Apex Legends.
+A lightweight macOS file converter: **hold Shift, drag a file, and a wheel appears at the pointer. Drop on the format you want.** The result is saved next to the original, which is never touched. Inspired by the weapon wheel in GTA V and the ping wheel in Apex Legends.
 
 <p align="center">
   <img src="docs/screenshots/wheel.png" width="230" alt="The wheel">
@@ -12,6 +12,7 @@ A lightweight macOS menu-bar file converter: **hold Shift, drag a file, and a wh
   <img src="docs/screenshots/image-editor.png" width="520" alt="Image editor">
 </p>
 
+- **Opens ready to use:** it starts with a simple window (running, launch at login, how to use it, what to allow). Close it and the app keeps waiting for drags in the background; click its Dock icon to bring the window back.
 - **Native:** built on macOS frameworks; no background service; nothing is uploaded.
 - **No permission to trigger:** it only watches mouse events and the drag pasteboard.
 - **More than converting:** drop on the **wrench** at the left of the wheel for an editor with a preview (image crop / background removal / compression, video and audio trim, PDF split).
@@ -51,7 +52,7 @@ There is no developer signature or notarization, so a **manually downloaded zip*
 
 - **Finder right-click:** Quick Actions / Services ▸ "Convert with Phaeton…" (enable it in System Settings ▸ Keyboard ▸ Keyboard Shortcuts ▸ Services if missing).
 - **Progress:** after the drop the wheel becomes a progress ring; click it to cancel; a notification when done.
-- **Shift on a selected file deselects it in Finder:** start the drag first, then press Shift; or enable "Shift does not deselect selected files" in the menu (needs Accessibility, off by default).
+- **Shift on a selected file deselects it in Finder:** start the drag first, then press Shift; or turn on "Shift does not deselect selected files" under Permissions in the main window (needs Accessibility, off by default).
 - **Never overwrites:** writes a temp file then renames, names get a counter, failures leave nothing behind.
 
 ## Optional components

@@ -49,4 +49,4 @@ ditto "$WORK/Phaeton.app" "$DEST/Phaeton.app"
 xattr -dr com.apple.quarantine "$DEST/Phaeton.app" 2>/dev/null || true
 echo "Installed: $DEST/Phaeton.app"
 if [[ -z "${PHAETON_NO_OPEN:-}" ]]; then open "$DEST/Phaeton.app"; fi
-echo "Look for the pie icon in the menu bar. Hold Shift and drag a file to try it."
+echo "Phaeton opened a window that explains how to use it. Hold Shift and drag a file to try it."

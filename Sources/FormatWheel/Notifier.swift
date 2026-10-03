@@ -2,8 +2,8 @@ import AppKit
 import UserNotifications
 
 /// Posts a system notification when a conversion ends. Clicking it reveals the result.
-/// Authorization is requested the first time; if it is declined nothing is shown and the
-/// menu bar status remains the only feedback.
+/// Authorization is asked for from the main window (or the first time a notification is due); if
+/// it is declined nothing is shown.
 @MainActor
 final class Notifier: NSObject, UNUserNotificationCenterDelegate {
     private var center: UNUserNotificationCenter? {
