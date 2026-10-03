@@ -24,7 +24,7 @@ final class MainWindow: NSObject, NSWindowDelegate {
     func close() { window?.close() }
 
     private func makeWindow() -> NSWindow {
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 460, height: 550),
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 460, height: 500),
                               styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
                               backing: .buffered, defer: false)
         window.title = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Phaeton"

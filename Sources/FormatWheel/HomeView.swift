@@ -25,10 +25,9 @@ struct HomeView: View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 16) {
                 header
-                runningPill
                 PanelSection(caption: "开机自启") { launchAtLogin }
                 PanelSection(caption: "怎么用") { usage }
-                PanelSection(caption: "授权（均为可选）") { permissions }
+                PanelSection(caption: "授权") { permissions }
                 footer
             }
             .padding(.horizontal, 28)
@@ -51,18 +50,17 @@ struct HomeView: View {
                 Text("轻與").font(.system(size: 24, weight: .semibold))
                 Text("Phaeton \(version)").font(.system(size: 12)).foregroundStyle(.secondary)
             }
-            Spacer()
+            Spacer(minLength: 8)
+            runningPill
         }
     }
 
     private var runningPill: some View {
-        HStack(spacing: 8) {
-            Circle().fill(status.isConverting ? Theme.accent : Color.green).frame(width: 8, height: 8)
-            Text(status.isConverting ? "处理中…" : "已启动")
-                .font(.system(size: 12, weight: .medium))
-            Spacer(minLength: 0)
+        HStack(spacing: 6) {
+            Circle().fill(status.isConverting ? Theme.accent : Color.green).frame(width: 7, height: 7)
+            Text(status.isConverting ? "处理中" : "已启动").font(.system(size: 11, weight: .medium))
         }
-        .padding(.horizontal, 12).padding(.vertical, 8)
+        .padding(.horizontal, 10).padding(.vertical, 5)
         .background(Capsule().fill((status.isConverting ? Theme.accent : Color.green).opacity(0.14)))
     }
 
@@ -75,7 +73,7 @@ struct HomeView: View {
                     Text("登录时自动启动").font(.system(size: 12))
                     Spacer()
                     Toggle("", isOn: Binding(get: { status.launchesAtLogin }, set: { status.setLaunchAtLogin($0) }))
-                        .toggleStyle(.switch).labelsHidden().controlSize(.small)
+                        .toggleStyle(FlatToggleStyle()).labelsHidden()
                 }
                 .padding(.horizontal, 12).padding(.vertical, 9)
             }
@@ -144,7 +142,7 @@ struct HomeView: View {
             Image(systemName: symbol).font(.system(size: 13)).foregroundStyle(Theme.accent).frame(width: 20)
             Text(title).font(.system(size: 12, weight: .medium))
             Spacer(minLength: 8)
-            Toggle("", isOn: isOn).toggleStyle(.switch).labelsHidden().controlSize(.small).disabled(!enabled)
+            Toggle("", isOn: isOn).toggleStyle(FlatToggleStyle()).labelsHidden().disabled(!enabled)
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
         .overlay(alignment: .bottom) {
@@ -185,10 +183,11 @@ struct HomeView: View {
     // MARK: Footer
 
     private var footer: some View {
-        HStack(spacing: 10) {
-            Spacer()
-            Button("关闭", action: actions.close).buttonStyle(PanelButtonStyle()).keyboardShortcut(.cancelAction)
+        HStack {
             Button("退出", action: actions.quit).buttonStyle(PanelButtonStyle())
+            Spacer()
+            Button("关闭", action: actions.close).buttonStyle(PanelButtonStyle(prominent: true))
+                .keyboardShortcut(.cancelAction)
         }
     }
 }

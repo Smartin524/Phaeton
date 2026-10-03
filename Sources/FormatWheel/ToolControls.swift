@@ -178,3 +178,31 @@ struct SidePanel<Content: View, Footer: View>: View {
         .overlay(alignment: .leading) { Rectangle().fill(Color.primary.opacity(0.10)).frame(width: 0.5) }
     }
 }
+
+/// A flat on/off switch: theme-coloured track when on, light grey when off, a white knob. The system
+/// switch draws its own gradient, which does not match the rest of the app.
+struct FlatToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        Track(configuration: configuration)
+    }
+
+    private struct Track: View {
+        let configuration: ToggleStyleConfiguration
+        @Environment(\.isEnabled) private var isEnabled
+
+        var body: some View {
+            Button { configuration.isOn.toggle() } label: {
+                ZStack(alignment: configuration.isOn ? .trailing : .leading) {
+                    Capsule().fill(configuration.isOn ? Theme.accent : Color.primary.opacity(0.2))
+                        .frame(width: 38, height: 22)
+                    Circle().fill(Color.white).frame(width: 18, height: 18).padding(2)
+                        .shadow(color: .black.opacity(0.25), radius: 1, y: 0.5)
+                }
+                .animation(.easeOut(duration: 0.15), value: configuration.isOn)
+                .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .opacity(isEnabled ? 1 : 0.4)
+        }
+    }
+}
