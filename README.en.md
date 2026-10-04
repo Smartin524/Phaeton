@@ -12,7 +12,7 @@ A lightweight macOS file converter: **hold Shift, drag a file, and a wheel appea
   <img src="docs/screenshots/image-editor.png" height="300" alt="Image editor">
 </p>
 
-- **Menu bar only:** no Dock icon. The small wheel in the menu bar opens a panel (running, launch at login, how to use it, what to allow). With the panel closed it keeps waiting for drags in the background.
+- **Menu bar only:** no Dock icon. The small wheel in the menu bar opens a panel (running, launch at login, how to use it, what to allow). With the panel closed it keeps waiting for drags in the background. The menu-bar icon can be turned off in the panel; opening the app again brings the panel back.
 - **Native:** built on macOS frameworks; no background service; nothing is uploaded.
 - **No permission to trigger:** it only watches mouse events and the drag pasteboard.
 - **More than converting:** drop on the **wrench** at the left of the wheel for an editor with a preview (image crop / background removal / compression, video and audio trim, PDF split).

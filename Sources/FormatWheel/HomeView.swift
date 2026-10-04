@@ -7,6 +7,7 @@ struct HomeActions {
     var requestNotifications: () -> Void
     var requestAccessibility: () -> Void
     var setShiftFilter: (Bool) -> Void
+    var setMenuBarIcon: (Bool) -> Void
     var close: () -> Void
     var quit: () -> Void
 }
@@ -23,7 +24,7 @@ struct HomeView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             header
-            PanelSection(caption: "开机自启") { launchAtLogin }
+            PanelSection(caption: "常规") { launchAtLogin }
             PanelSection(caption: "怎么用") { usage }
             PanelSection(caption: "授权") { permissions }
             footer.padding(.top, 4)
@@ -79,6 +80,21 @@ struct HomeView: View {
                         .toggleStyle(FlatToggleStyle()).labelsHidden()
                 }
                 .padding(.horizontal, 12).padding(.vertical, 9)
+                .overlay(alignment: .bottom) {
+                    Rectangle().fill(Color.primary.opacity(0.08)).frame(height: 0.5).padding(.leading, 12)
+                }
+                HStack {
+                    Text("在菜单栏显示图标").font(.system(size: 12))
+                    Spacer()
+                    Toggle("在菜单栏显示图标", isOn: Binding(get: { status.showsMenuBarIcon }, set: actions.setMenuBarIcon))
+                        .toggleStyle(FlatToggleStyle()).labelsHidden()
+                }
+                .padding(.horizontal, 12).padding(.vertical, 9)
+            }
+            if !status.showsMenuBarIcon {
+                // Without the icon, opening the app again is the only way back here.
+                Text("图标已隐藏，拖文件照常可用。要回到这个面板，在“应用程序”或聚焦搜索里再打开一次轻與。")
+                    .font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
             if status.loginStatus == .requiresApproval {
                 note("还需要在“系统设置 → 通用 → 登录项”里允许它。") {

@@ -89,6 +89,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 AppStatus.openAccessibilitySettings()
             },
             setShiftFilter: { [weak self] on in self?.setShiftFilter(on) },
+            setMenuBarIcon: { [weak self] on in
+                guard let self else { return }
+                UserDefaults.standard.set(on, forKey: MenuBarPanel.iconKey)
+                self.status.update(\.showsMenuBarIcon, on)
+                self.panel?.setIconVisible(on)
+            },
             close: { [weak self] in self?.panel?.close() },
             quit: { NSApp.terminate(nil) }))
         self.panel = panel

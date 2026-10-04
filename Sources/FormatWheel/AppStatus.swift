@@ -19,6 +19,8 @@ final class AppStatus: ObservableObject {
     /// Set once the user has pressed "授权", so a stale entry can be explained if it still is not trusted.
     @Published var accessibilityRequested = false
     @Published var shiftFilterOn = false
+    /// The wheel icon in the menu bar; on unless turned off in the panel.
+    @Published var showsMenuBarIcon = UserDefaults.standard.object(forKey: MenuBarPanel.iconKey) as? Bool ?? true
     @Published var loginStatus = SMAppService.Status.notRegistered
     @Published var loginError: String?
 
