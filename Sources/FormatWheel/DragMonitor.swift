@@ -1,5 +1,8 @@
 import AppKit
 import FormatWheelCore
+import os
+
+private let log = Logger(subsystem: "io.github.smartin524.phaeton", category: "drag")
 
 /// Watches for "hold Shift while dragging supported files" anywhere on screen.
 ///
@@ -17,6 +20,10 @@ final class DragMonitor {
     private var timer: Timer?
     private var baselineChangeCount = 0
     private var active = false
+    /// Diagnostics: what one press saw, logged once when the button comes up (debug level: not stored,
+/// visible with `log stream --level debug --predicate 'subsystem == "io.github.smartin524.phaeton"'`).
+    private var sawDrag = false
+    private var sawShift = false
 
     func start() {
         guard monitors.isEmpty else { return }
@@ -49,8 +56,11 @@ final class DragMonitor {
 
     private func poll() {
         guard NSEvent.pressedMouseButtons & 1 != 0 else { finish(); return }
-        guard !active, NSEvent.modifierFlags.contains(.shift) else { return }
         let pasteboard = NSPasteboard(name: .drag)
+        if pasteboard.changeCount != baselineChangeCount { sawDrag = true }
+        let shift = Self.shiftKeyIsDown
+        if shift { sawShift = true }
+        guard !active, shift else { return }
         guard pasteboard.changeCount != baselineChangeCount else { return }
         let options: [NSPasteboard.ReadingOptionKey: Any] = [.urlReadingFileURLsOnly: true]
         let urls = (pasteboard.readObjects(forClasses: [NSURL.self], options: options) as? [URL]) ?? []
@@ -60,7 +70,21 @@ final class DragMonitor {
         onBegin?(kind, urls.filter { FileKind($0) == kind }, NSEvent.mouseLocation)
     }
 
+    /// Shift as either source sees it. The keyboard's own state is needed because ShiftFilter removes
+    /// Shift from the click and drag events on a selected Finder item (so Finder does not deselect
+    /// it), and NSEvent.modifierFlags follows those events, so it reads "up". The event-stream state
+    /// is kept too: Sticky Keys, Universal Control, Screen Sharing and on-screen keyboards press Shift
+    /// there without touching the hardware state. Neither source invents a Shift, so either is enough.
+    private static var shiftKeyIsDown: Bool {
+        CGEventSource.flagsState(.hidSystemState).contains(.maskShift) || NSEvent.modifierFlags.contains(.shift)
+    }
+
     private func finish() {
+        if timer != nil {
+            log.debug("press ended: drag started = \(self.sawDrag, privacy: .public), shift seen = \(self.sawShift, privacy: .public), wheel shown = \(self.active, privacy: .public)")
+        }
+        sawDrag = false
+        sawShift = false
         timer?.invalidate()
         timer = nil
         baselineChangeCount = NSPasteboard(name: .drag).changeCount

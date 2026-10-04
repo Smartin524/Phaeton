@@ -248,7 +248,7 @@ struct VideoToolView: View {
                 Text(isBatch ? "共 \(urls.count) 个视频，预览第一个" : model.details)
                     .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
             }
-            .padding(.top, 12).padding(.horizontal, 12).padding(.bottom, 12)
+            .padding(.top, ToolWindows.titleBarClearance).padding(.horizontal, 12).padding(.bottom, 12)
             SidePanel {
                 if !isBatch {
                     Tabs(titles: ["剪辑", "更多"], selection: $page)

@@ -1,6 +1,7 @@
 import AppKit
 import ApplicationServices
 import FormatWheelCore
+import os
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -60,7 +61,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.hudShown = false
             self?.notifier.post(message: message, revealing: url, success: success)
         }
-        if UserDefaults.standard.bool(forKey: filterKey), AXIsProcessTrusted() { status.shiftFilterOn = shiftFilter.start() }
+        if UserDefaults.standard.bool(forKey: filterKey) {
+            // Logged so a "Shift on a selected file does nothing" report can be traced (see ShiftFilter).
+            Logger(subsystem: "io.github.smartin524.phaeton", category: "shift-filter")
+                .notice("launch: option on, Accessibility trusted = \(AXIsProcessTrusted(), privacy: .public)")
+            if AXIsProcessTrusted() { status.shiftFilterOn = shiftFilter.start() }
+        }
         model.onNeedExtras = { [weak self] sources, label, work in self?.offerExtras(sources, label, work) }
         model.onCancel = { [weak self] in
             self?.hud.dismiss()

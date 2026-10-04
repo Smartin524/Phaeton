@@ -1,5 +1,12 @@
 import AppKit
 import ApplicationServices
+import os
+
+/// Diagnostics for the Shift filter. Start-up and failures are stored:
+///   /usr/bin/log show --last 10m --predicate 'subsystem == "io.github.smartin524.phaeton"'
+/// Each Shift-click is logged at debug level, seen only live:
+///   /usr/bin/log stream --level debug --predicate 'subsystem == "io.github.smartin524.phaeton"'
+private let log = Logger(subsystem: "io.github.smartin524.phaeton", category: "shift-filter")
 
 /// Optional. Finder treats Shift + mouse-down on an already selected item as "deselect",
 /// so no drag ever starts. With Accessibility permission this removes the Shift flag from
@@ -17,7 +24,10 @@ final class ShiftFilter {
     func start() -> Bool {
         guard tap == nil else { return true }
         let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
-        guard AXIsProcessTrustedWithOptions(options) else { return false }
+        guard AXIsProcessTrustedWithOptions(options) else {
+            log.notice("start: not trusted for Accessibility")
+            return false
+        }
         let mask = (1 << CGEventType.leftMouseDown.rawValue) | (1 << CGEventType.leftMouseDragged.rawValue)
             | (1 << CGEventType.leftMouseUp.rawValue)
         guard let port = CGEvent.tapCreate(
@@ -28,7 +38,11 @@ final class ShiftFilter {
                 let filter = Unmanaged<ShiftFilter>.fromOpaque(refcon).takeUnretainedValue()
                 return MainActor.assumeIsolated { filter.handle(type, event) }
             },
-            userInfo: Unmanaged.passUnretained(self).toOpaque()) else { return false }
+            userInfo: Unmanaged.passUnretained(self).toOpaque()) else {
+            log.error("start: trusted, but the event tap could not be created")
+            return false
+        }
+        log.notice("start: event tap running")
         let runLoopSource = CFMachPortCreateRunLoopSource(nil, port, 0)
         CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
         tap = port
@@ -47,14 +61,18 @@ final class ShiftFilter {
     fileprivate func handle(_ type: CGEventType, _ event: CGEvent) -> Unmanaged<CGEvent>? {
         switch type {
         case .tapDisabledByTimeout, .tapDisabledByUserInput:
+            log.notice("tap disabled by the system (\(type.rawValue, privacy: .public)); re-enabling")
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
         case .leftMouseDown:
             let flags = event.flags
             if flags.contains(.maskShift),
-               flags.intersection([.maskCommand, .maskAlternate, .maskControl]).isEmpty,
-               Self.isSelectedFinderItem(at: event.location) {
-                stripping = true
-                event.flags.remove(.maskShift)
+               flags.intersection([.maskCommand, .maskAlternate, .maskControl]).isEmpty {
+                let selected = Self.isSelectedFinderItem(at: event.location)
+                log.debug("shift-click: selected Finder item = \(selected, privacy: .public)")
+                if selected {
+                    stripping = true
+                    event.flags.remove(.maskShift)
+                }
             }
         case .leftMouseDragged:
             if stripping { event.flags.remove(.maskShift) }
@@ -73,15 +91,25 @@ final class ShiftFilter {
         let system = AXUIElementCreateSystemWide()
         AXUIElementSetMessagingTimeout(system, 0.15)
         var found: AXUIElement?
-        guard AXUIElementCopyElementAtPosition(system, Float(point.x), Float(point.y), &found) == .success,
-              var element = found else { return false }
+        let lookup = AXUIElementCopyElementAtPosition(system, Float(point.x), Float(point.y), &found)
+        guard lookup == .success, var element = found else {
+            log.debug("no element at the click (AX error \(lookup.rawValue, privacy: .public))")
+            return false
+        }
         var pid: pid_t = 0
-        guard AXUIElementGetPid(element, &pid) == .success,
-              NSRunningApplication(processIdentifier: pid)?.bundleIdentifier == "com.apple.finder" else { return false }
-        for _ in 0..<5 {
-            var value: CFTypeRef?
-            if AXUIElementCopyAttributeValue(element, kAXSelectedAttribute as CFString, &value) == .success,
-               let selected = value as? Bool, selected { return true }
+        let owner = AXUIElementGetPid(element, &pid) == .success ? NSRunningApplication(processIdentifier: pid)?.bundleIdentifier : nil
+        guard owner == "com.apple.finder" else {
+            log.debug("clicked element belongs to \(owner ?? "unknown", privacy: .public), not Finder")
+            return false
+        }
+        var chain: [String] = []
+        defer { log.debug("Finder element chain: \(chain.joined(separator: " < "), privacy: .public)") }
+        for _ in 0..<6 {
+            var role: CFTypeRef?, value: CFTypeRef?
+            AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &role)
+            let state = AXUIElementCopyAttributeValue(element, kAXSelectedAttribute as CFString, &value)
+            chain.append("\(role as? String ?? "?")[selected=\(state == .success ? String(describing: value as? Bool) : "n/a")]")
+            if state == .success, let selected = value as? Bool, selected { return true }
             var parent: CFTypeRef?
             guard AXUIElementCopyAttributeValue(element, kAXParentAttribute as CFString, &parent) == .success,
                   let next = parent, CFGetTypeID(next) == AXUIElementGetTypeID() else { return false }

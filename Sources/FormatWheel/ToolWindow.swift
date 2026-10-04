@@ -22,7 +22,9 @@ final class ToolWindows: NSObject, NSWindowDelegate {
         window.title = urls.count == 1 ? first.lastPathComponent : "\(urls.count) 个文件"
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
-        window.isMovableByWindowBackground = true
+        // Not movable by its background: dragging a crop handle or a trim grip moved the whole window.
+        // The strip along the top still moves it.
+        window.isMovableByWindowBackground = false
         // The panel has Cancel (Esc) and Save, so the traffic lights are only clutter.
         for button: NSWindow.ButtonType in [.closeButton, .miniaturizeButton, .zoomButton] {
             window.standardWindowButton(button)?.isHidden = true
@@ -39,11 +41,11 @@ final class ToolWindows: NSObject, NSWindowDelegate {
             guard let window, media.width > 0, media.height > 0 else { return }
             let visible = (window.screen ?? NSScreen.main)?.visibleFrame.size ?? NSSize(width: 1440, height: 900)
             let room = NSSize(width: min(620, visible.width - 80) - Self.panelWidth - 24,
-                              height: min(460, visible.height - 140) - 36)
+                              height: min(460, visible.height - 140) - Self.chrome)
             let scale = min(room.width / media.width, room.height / media.height, 1.5)
             let image = NSSize(width: media.width * scale, height: media.height * scale)
             window.setContentSize(NSSize(width: max(Self.panelWidth + 220, image.width + 24 + Self.panelWidth),
-                                         height: max(window.minSize.height, image.height + 36)))
+                                         height: max(window.minSize.height, image.height + Self.chrome)))
             window.center()
         }
         let glass = NSVisualEffectView()
@@ -76,6 +78,13 @@ final class ToolWindows: NSObject, NSWindowDelegate {
 
     /// Width of the control panel on the right, fixed whatever the picture is.
     static let panelWidth: CGFloat = 204
+
+    /// The see-through title bar along the top moves the window when pressed, so the picture or the
+    /// video starts below it (a crop handle there used to drag the window instead).
+    static let titleBarClearance: CGFloat = 30
+
+    /// Vertical space around the picture: the title bar strip above, margins and the fit inset.
+    static let chrome: CGFloat = titleBarClearance + 24
 
     func windowWillClose(_ notification: Notification) {
         windows.removeAll { $0 === notification.object as? NSWindow }

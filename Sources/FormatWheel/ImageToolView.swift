@@ -104,7 +104,7 @@ struct ImageToolView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            canvas.padding(.top, 12).padding(.horizontal, 12).padding(.bottom, 12)
+            canvas.padding(.top, ToolWindows.titleBarClearance).padding(.horizontal, 12).padding(.bottom, 12)
             SidePanel {
                 Tabs(titles: ["裁切", "更多"], selection: $page)
                 if page == 1 {
@@ -271,13 +271,21 @@ private struct CropEditor: View {
                             .offset(x: p.x - size.width / 2, y: p.y - size.height / 2)
                     }
                 }
-                Color.clear.contentShape(Rectangle()).gesture(drag(fit))
-                    .onContinuousHover { phase in
-                        switch phase {
-                        case .active(let point): Self.cursor(for: mode ?? hit(point, r)).set()
-                        case .ended: NSCursor.arrow.set()
-                        }
-                    }
+                // Mouse handling in AppKit: a SwiftUI drag here also moved the window, and setting
+                // the cursor on every hover fought AppKit's own cursor updates, so it flickered.
+                CropMouseArea(
+                    cursorAt: { point in Self.cursor(for: mode ?? hit(point, r)) },
+                    down: { point in
+                        startRect = rect(in: fit)
+                        mode = hit(point, startRect)
+                    },
+                    dragged: { start, point in
+                        guard let mode else { return }
+                        let moved = CGSize(width: point.x - start.x, height: point.y - start.y)
+                        crop = normalized(updated(mode, by: moved, in: fit), in: fit)
+                    },
+                    up: { mode = nil })
+                    .frame(width: geo.size.width, height: geo.size.height)
             }
         }
     }
@@ -326,19 +334,6 @@ private struct CropEditor: View {
         return r.contains(p) ? .move : nil
     }
 
-    private func drag(_ fit: CGRect) -> some Gesture {
-        DragGesture(minimumDistance: 0)
-            .onChanged { value in
-                if mode == nil {
-                    startRect = rect(in: fit)
-                    mode = hit(value.startLocation, startRect)
-                }
-                guard let mode else { return }
-                crop = normalized(updated(mode, by: value.translation, in: fit), in: fit)
-            }
-            .onEnded { _ in mode = nil }
-    }
-
     private func updated(_ mode: Mode, by t: CGSize, in fit: CGRect) -> CGRect {
         var r = startRect
         switch mode {
@@ -385,3 +380,63 @@ private struct CropEditor: View {
     }
 }
 
+
+/// The crop editor's mouse surface: presses here never move the window, and the cursor is set the
+/// AppKit way (tracking-area cursor updates), so it does not flicker. Points are in the view's own
+/// top-left coordinates, the same as the SwiftUI layout around it.
+private struct CropMouseArea: NSViewRepresentable {
+    var cursorAt: (CGPoint) -> NSCursor
+    var down: (CGPoint) -> Void
+    var dragged: (_ start: CGPoint, _ current: CGPoint) -> Void
+    var up: () -> Void
+
+    func makeNSView(context: Context) -> Surface {
+        let view = Surface()
+        view.handlers = self
+        return view
+    }
+
+    func updateNSView(_ view: Surface, context: Context) { view.handlers = self }
+
+    final class Surface: NSView {
+        var handlers: CropMouseArea?
+        private var start: CGPoint?
+
+        override var isFlipped: Bool { true }
+        override var mouseDownCanMoveWindow: Bool { false }
+        override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+        override func updateTrackingAreas() {
+            super.updateTrackingAreas()
+            trackingAreas.forEach(removeTrackingArea)
+            addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseMoved, .cursorUpdate, .mouseEnteredAndExited,
+                                                                  .activeAlways, .inVisibleRect],
+                                           owner: self))
+        }
+
+        private func point(_ event: NSEvent) -> CGPoint { convert(event.locationInWindow, from: nil) }
+        private func updateCursor(_ event: NSEvent) { handlers?.cursorAt(point(event)).set() }
+
+        override func cursorUpdate(with event: NSEvent) { updateCursor(event) }
+        override func mouseMoved(with event: NSEvent) { if start == nil { updateCursor(event) } }
+        override func mouseExited(with event: NSEvent) { if start == nil { NSCursor.arrow.set() } }
+
+        override func mouseDown(with event: NSEvent) {
+            let location = point(event)
+            start = location
+            handlers?.down(location)
+            updateCursor(event)
+        }
+
+        override func mouseDragged(with event: NSEvent) {
+            guard let start else { return }
+            handlers?.dragged(start, point(event))
+        }
+
+        override func mouseUp(with event: NSEvent) {
+            start = nil
+            handlers?.up()
+            updateCursor(event)
+        }
+    }
+}
