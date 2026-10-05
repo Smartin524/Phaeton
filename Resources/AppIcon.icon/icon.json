@@ -1,31 +1,18 @@
 {
-  "fill-specializations": [
-    {
-      "value": {
-        "automatic-gradient": "extended-srgb:0.85098,0.46667,0.34118,1.00000"
-      }
-    },
-    {
-      "appearance": "dark",
-      "value": {
-        "automatic-gradient": "extended-srgb:0.03,0.03,0.035,1.0"
-      }
-    }
-  ],
   "groups": [
     {
       "layers": [
         {
-          "fill-specializations": [
+          "name": "Wheel",
+          "image-name-specializations": [
+            {
+              "value": "wheel.svg"
+            },
             {
               "appearance": "dark",
-              "value": {
-                "solid": "extended-srgb:0.85098,0.46667,0.34118,1.00000"
-              }
+              "value": "wheel-dark.svg"
             }
-          ],
-          "image-name": "wheel.svg",
-          "name": "Wheel"
+          ]
         }
       ],
       "shadow": {
@@ -42,5 +29,8 @@
     "squares": [
       "macOS"
     ]
+  },
+  "fill": {
+    "automatic-gradient": "extended-srgb:0.85098,0.46667,0.34118,1.00000"
   }
 }
