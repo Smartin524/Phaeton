@@ -8,7 +8,7 @@
     {
       "appearance": "dark",
       "value": {
-        "solid": "extended-srgb:0.14902,0.14902,0.14118,1.00000"
+        "automatic-gradient": "extended-srgb:0.03,0.03,0.035,1.0"
       }
     }
   ],
@@ -30,11 +30,11 @@
       ],
       "shadow": {
         "kind": "neutral",
-        "opacity": 0.5
+        "opacity": 0.2
       },
       "translucency": {
-        "enabled": true,
-        "value": 0.15
+        "enabled": false,
+        "value": 0
       }
     }
   ],
